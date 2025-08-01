@@ -1,0 +1,71 @@
+
+export interface PatientData {
+  // Primary identifiers
+  deal_id: number;
+  lead_id: string | null;
+  deal_name: string | null;
+  patient_full_name: string | null;
+  clinic_name: string | null;
+  patient_status: 'Arriving' | 'In Treatment' | 'Departed' | 'Unknown';
+  
+  // Deal data
+  pipeline_name: string | null;
+  status_name: string | null;
+  deal_country: string | null;
+  visa_city: string | null;
+  deal_created_at: string | null;
+  
+  // Clinic data
+  clinic_full_name: string | null;
+  clinic_address_chinese: string | null;
+  clinic_address_english: string | null;
+  
+  // Patient personal data
+  patient_first_name: string | null;
+  patient_last_name: string | null;
+  patient_preferred_name: string | null;
+  patient_phone: string | null;
+  patient_email: string | null;
+  patient_birthday: string | null;
+  patient_country: string | null;
+  patient_city: string | null;
+  patient_passport: string | null;
+  amocrm_contact_id: number | null;
+  
+  // Arrival data (read-only)
+  arrival_datetime: string | null;
+  arrival_transport_type: string | null;
+  departure_airport_code: string | null;
+  arrival_city: string | null;
+  arrival_flight_number: string | null;
+  arrival_terminal: string | null;
+  passengers_count: string | null;
+  
+  // Editable fields
+  apartment_number: string | null;
+  departure_city: string | null;
+  departure_datetime: string | null;
+  departure_flight_number: string | null;
+  departure_transport_type: string | null;
+  
+  // Visa data
+  visa_type: string | null;
+  visa_days: number | null;
+  visa_entries_count: string | null;
+  visa_corridor_start: string | null;
+  visa_corridor_end: string | null;
+  visa_expiry_date: string | null;
+  days_until_visa_expires: number | null;
+  visa_status: 'Active' | 'Expiring Soon' | 'Expired' | null;
+}
+
+export interface PatientFilters {
+  dateRange: 'today' | 'tomorrow' | 'week' | 'all';
+  status: 'arriving' | 'in_treatment' | 'departing' | 'all';
+  clinic?: string;
+  search?: string;
+  urgentVisas?: boolean;
+}
+
+export type FieldGroup = 'basic' | 'arrival' | 'departure' | 'visa' | 'personal';
+export type EditableField = 'apartment_number' | 'departure_city' | 'departure_datetime' | 'departure_flight_number';
