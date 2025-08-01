@@ -543,6 +543,69 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_super_admin_master_view: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          deal_id: number
+          lead_id: string
+          deal_name: string
+          pipeline_name: string
+          status_name: string
+          clinic_name: string
+          deal_country: string
+          visa_city: string
+          clinic_full_name: string
+          clinic_address_chinese: string
+          clinic_address_english: string
+          patient_last_name: string
+          patient_first_name: string
+          patient_full_name: string
+          patient_preferred_name: string
+          patient_phone: string
+          patient_email: string
+          patient_birthday: string
+          patient_country: string
+          patient_city: string
+          patient_passport: string
+          amocrm_contact_id: number
+          arrival_datetime: string
+          arrival_transport_type: string
+          departure_airport_code: string
+          arrival_city: string
+          arrival_flight_number: string
+          arrival_terminal: string
+          passengers_count: string
+          apartment_number: string
+          departure_transport_type: string
+          departure_city: string
+          departure_datetime: string
+          departure_flight_number: string
+          visa_type: string
+          visa_days: number
+          visa_entries_count: string
+          visa_corridor_start: string
+          visa_corridor_end: string
+          visa_expiry_date: string
+          days_until_visa_expires: unknown
+          patient_status: string
+          visa_status: string
+          deal_created_at: string
+          deal_updated_at: string
+        }[]
+      }
+      get_user_profile: {
+        Args: { user_uuid: string }
+        Returns: {
+          id: string
+          user_id: string
+          email: string
+          full_name: string
+          role: Database["public"]["Enums"]["app_role"]
+          clinic_name: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
     }
     Enums: {
       app_role: "super_admin" | "director" | "coordinator"

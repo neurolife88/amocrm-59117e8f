@@ -37,9 +37,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (session?.user) {
         try {
-          // Fetch user profile using RPC or try direct query
+          // Fetch user profile
           const { data: profileData, error } = await supabase
-            .rpc('get_user_profile', { user_uuid: session.user.id });
+            .from('user_profiles')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single();
           
           console.log('Profile data:', profileData, 'Error:', error);
           
@@ -64,9 +67,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (session?.user) {
           try {
-            // Fetch user profile using RPC or try direct query
+            // Fetch user profile
             const { data: profileData, error } = await supabase
-              .rpc('get_user_profile', { user_uuid: session.user.id });
+              .from('user_profiles')
+              .select('*')
+              .eq('user_id', session.user.id)
+              .single();
             
             console.log('Profile data on auth change:', profileData, 'Error:', error);
             
