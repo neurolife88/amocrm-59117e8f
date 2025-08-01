@@ -610,6 +610,10 @@ export type Database = {
           updated_at: string
         }[]
       }
+      is_super_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "super_admin" | "director" | "coordinator"
