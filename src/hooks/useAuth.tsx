@@ -64,29 +64,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state changed:', event, session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          try {
-            // Fetch user profile
-            const { data: profileData, error } = await supabase
-              .from('user_profiles')
-              .select('*')
-              .eq('user_id', session.user.id)
-              .single();
-            
-            console.log('Profile data on auth change:', profileData, 'Error:', error);
-            
-            if (!error && profileData) {
-              setProfile(profileData);
-            } else {
-              console.error('Error fetching profile on auth change:', error);
+          // Defer profile fetch to avoid blocking auth state change
+          setTimeout(async () => {
+            try {
+              const { data: profileData, error } = await supabase
+                .from('user_profiles')
+                .select('*')
+                .eq('user_id', session.user.id)
+                .single();
+              
+              console.log('Profile data on auth change:', profileData, 'Error:', error);
+              
+              if (!error && profileData) {
+                setProfile(profileData);
+              } else {
+                console.error('Error fetching profile on auth change:', error);
+                setProfile(null);
+              }
+            } catch (err) {
+              console.error('Profile fetch error on auth change:', err);
+              setProfile(null);
             }
-          } catch (err) {
-            console.error('Profile fetch error on auth change:', err);
-          }
+          }, 0);
         } else {
           setProfile(null);
         }
