@@ -16,19 +16,19 @@ export function usePatients() {
     setError(null);
     
     try {
-      // Use the master view directly
-      let query = supabase
-        .from('super_admin_master_view')
-        .select('*');
+      // Use the new filtered function that handles role-based access via RLS
+      const { data: allData, error: rpcError } = await supabase
+        .rpc('get_filtered_master_view');
         
-      // Role-based filtering
-      if (profile.role === 'coordinator' && profile.clinic_name) {
-        query = query.eq('clinic_name', profile.clinic_name);
-      }
+      if (rpcError) throw rpcError;
       
-      // Apply filters
+      let filteredData = allData || [];
+      
+      // Apply client-side filters
       if (filters.clinic && profile.role !== 'coordinator') {
-        query = query.eq('clinic_name', filters.clinic);
+        filteredData = filteredData.filter((patient: any) => 
+          patient.clinic_name === filters.clinic
+        );
       }
       
       if (filters.status !== 'all') {
@@ -37,52 +37,65 @@ export function usePatients() {
           'in_treatment': 'In Treatment',
           'departing': 'Departed'
         };
-        query = query.eq('patient_status', statusMap[filters.status]);
+        filteredData = filteredData.filter((patient: any) => 
+          patient.patient_status === statusMap[filters.status]
+        );
       }
       
       if (filters.search) {
-        query = query.ilike('patient_full_name', `%${filters.search}%`);
+        const searchLower = filters.search.toLowerCase();
+        filteredData = filteredData.filter((patient: any) => 
+          patient.patient_full_name?.toLowerCase().includes(searchLower) ||
+          patient.patient_email?.toLowerCase().includes(searchLower) ||
+          patient.patient_phone?.toLowerCase().includes(searchLower)
+        );
       }
 
       // Date filters
       if (filters.dateRange !== 'all') {
         const now = new Date();
-        let startDate: Date;
-        let endDate: Date;
-
-        switch (filters.dateRange) {
-          case 'today':
-            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-            break;
-          case 'tomorrow':
-            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-            endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2);
-            break;
-          case 'week':
-            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
-            break;
-          default:
-            startDate = new Date(0);
-            endDate = new Date(2100, 0, 1);
-        }
-
-        query = query
-          .gte('arrival_datetime', startDate.toISOString())
-          .lt('arrival_datetime', endDate.toISOString());
+        filteredData = filteredData.filter((patient: any) => {
+          if (!patient.arrival_datetime) return false;
+          
+          const arrivalDate = new Date(patient.arrival_datetime);
+          
+          switch (filters.dateRange) {
+            case 'today':
+              const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+              const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+              return arrivalDate >= todayStart && arrivalDate < todayEnd;
+              
+            case 'tomorrow':
+              const tomorrowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+              const tomorrowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2);
+              return arrivalDate >= tomorrowStart && arrivalDate < tomorrowEnd;
+              
+            case 'week':
+              const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+              const weekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
+              return arrivalDate >= weekStart && arrivalDate < weekEnd;
+              
+            default:
+              return true;
+          }
+        });
       }
 
       if (filters.urgentVisas) {
-        query = query.eq('visa_status', 'Expiring Soon');
+        filteredData = filteredData.filter((patient: any) => 
+          patient.visa_status === 'Expiring Soon'
+        );
       }
       
-      const { data, error: queryError } = await query.order('arrival_datetime', { ascending: true });
-      
-      if (queryError) throw queryError;
+      // Sort by arrival_datetime
+      filteredData.sort((a: any, b: any) => {
+        const dateA = a.arrival_datetime ? new Date(a.arrival_datetime).getTime() : 0;
+        const dateB = b.arrival_datetime ? new Date(b.arrival_datetime).getTime() : 0;
+        return dateA - dateB;
+      });
       
       // Transform the data to match PatientData type
-      const transformedData: PatientData[] = (data || []).map((row: any) => ({
+      const transformedData: PatientData[] = filteredData.map((row: any) => ({
         deal_id: row.deal_id || 0,
         lead_id: row.lead_id,
         deal_name: row.deal_name,
@@ -139,8 +152,8 @@ export function usePatients() {
   }, [profile]);
 
   const updatePatient = async (dealId: number, updates: Partial<PatientData>) => {
-    if (!profile || profile.role !== 'coordinator') {
-      throw new Error('Not authorized to update patients');
+    if (!profile) {
+      throw new Error('User profile not loaded');
     }
 
     try {

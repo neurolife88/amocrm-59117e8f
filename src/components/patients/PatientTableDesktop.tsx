@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import { PatientData, FieldGroup } from '@/types/patient';
 import {
   Table,
@@ -9,8 +10,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { Edit2, Check, X } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface PatientTableDesktopProps {
   patients: PatientData[];
@@ -25,6 +30,111 @@ export function PatientTableDesktop({
   onPatientUpdate, 
   userRole 
 }: PatientTableDesktopProps) {
+  const { toast } = useToast();
+  const [editingField, setEditingField] = useState<{ dealId: number; field: string } | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
+
+  const startEditing = (dealId: number, field: string, currentValue: string) => {
+    setEditingField({ dealId, field });
+    setEditValue(currentValue || '');
+  };
+
+  const saveEdit = async (dealId: number, field: string) => {
+    try {
+      const updates: Partial<PatientData> = {};
+      
+      if (field === 'apartment_number') {
+        updates.apartment_number = editValue;
+      } else if (field === 'departure_city') {
+        updates.departure_city = editValue;
+      } else if (field === 'departure_datetime') {
+        updates.departure_datetime = editValue;
+      } else if (field === 'departure_flight_number') {
+        updates.departure_flight_number = editValue;
+      }
+
+      await onPatientUpdate(dealId, updates);
+      setEditingField(null);
+      toast({
+        title: "Успешно обновлено",
+        description: "Данные пациента обновлены",
+      });
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось обновить данные",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingField(null);
+    setEditValue('');
+  };
+
+  const isEditing = (dealId: number, field: string) => {
+    return editingField?.dealId === dealId && editingField?.field === field;
+  };
+
+  const canEdit = (field: string) => {
+    return userRole === 'coordinator' && ['apartment_number', 'departure_city', 'departure_datetime', 'departure_flight_number'].includes(field);
+  };
+
+  const renderEditableCell = (patient: PatientData, field: string, value: string | null, formatValue?: (val: string | null) => string) => {
+    const displayValue = formatValue ? formatValue(value) : (value || '-');
+    const rawValue = value || '';
+
+    if (isEditing(patient.deal_id, field)) {
+      return (
+        <TableCell>
+          <div className="flex items-center gap-2">
+            <Input
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="h-8 text-sm"
+              autoFocus
+            />
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => saveEdit(patient.deal_id, field)}
+              className="h-8 w-8 p-0"
+            >
+              <Check className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={cancelEdit}
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </TableCell>
+      );
+    }
+
+    return (
+      <TableCell>
+        <div className="flex items-center justify-between group">
+          <span>{displayValue}</span>
+          {canEdit(field) && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => startEditing(patient.deal_id, field, rawValue)}
+              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Edit2 className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+      </TableCell>
+    );
+  };
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-';
     try {
@@ -162,18 +272,18 @@ export function PatientTableDesktop({
                   <TableCell>{formatDate(patient.arrival_datetime)}</TableCell>
                   <TableCell>{patient.arrival_transport_type || '-'}</TableCell>
                   <TableCell>{patient.arrival_flight_number || '-'}</TableCell>
-                  <TableCell>{patient.apartment_number || '-'}</TableCell>
+                  {renderEditableCell(patient, 'apartment_number', patient.apartment_number)}
                 </>
               )}
               
-              {/* Departure fields */}
-              {visibleFieldGroups.includes('departure') && (
-                <>
-                  <TableCell>{formatDate(patient.departure_datetime)}</TableCell>
-                  <TableCell>{patient.departure_city || '-'}</TableCell>
-                  <TableCell>{patient.departure_flight_number || '-'}</TableCell>
-                </>
-              )}
+               {/* Departure fields */}
+               {visibleFieldGroups.includes('departure') && (
+                 <>
+                   {renderEditableCell(patient, 'departure_datetime', patient.departure_datetime, formatDate)}
+                   {renderEditableCell(patient, 'departure_city', patient.departure_city)}
+                   {renderEditableCell(patient, 'departure_flight_number', patient.departure_flight_number)}
+                 </>
+               )}
               
               {/* Visa fields */}
               {visibleFieldGroups.includes('visa') && (
