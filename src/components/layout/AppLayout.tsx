@@ -1,7 +1,8 @@
 
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { LogOut, Users, Hospital } from 'lucide-react';
+import { LogOut, Users, Hospital, Shield, Home } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -9,6 +10,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const { profile, signOut } = useAuth();
+  const location = useLocation();
 
   const handleSignOut = async () => {
     try {
@@ -58,12 +60,44 @@ export function AppLayout({ children }: AppLayoutProps) {
             </Button>
           </div>
         </div>
-      </header>
+        </header>
 
-      {/* Main content */}
-      <main className="container mx-auto px-4 py-6">
-        {children}
-      </main>
+        {/* Navigation for Super Admin */}
+        {profile.role === 'super_admin' && (
+          <nav className="border-b border-border bg-muted/30">
+            <div className="container mx-auto px-4">
+              <div className="flex space-x-6">
+                <Link
+                  to="/"
+                  className={`flex items-center space-x-2 px-3 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    location.pathname === '/'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground'
+                  }`}
+                >
+                  <Home className="h-4 w-4" />
+                  <span>Дашборд</span>
+                </Link>
+                <Link
+                  to="/users"
+                  className={`flex items-center space-x-2 px-3 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    location.pathname === '/users'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground'
+                  }`}
+                >
+                  <Shield className="h-4 w-4" />
+                  <span>Управление пользователями</span>
+                </Link>
+              </div>
+            </div>
+          </nav>
+        )}
+
+        {/* Main content */}
+        <main className="container mx-auto px-4 py-6">
+          {children}
+        </main>
     </div>
   );
 }
