@@ -5,16 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-type AppRole = 'super_admin' | 'director' | 'coordinator';
-
 export function SignUpForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<AppRole | ''>('');
   const [clinicName, setClinicName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,8 +32,7 @@ export function SignUpForm() {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
             full_name: fullName,
-            role,
-            clinic_name: role === 'coordinator' ? clinicName : null,
+            clinic_name: clinicName || null,
           }
         }
       });
@@ -77,7 +73,7 @@ export function SignUpForm() {
       <CardHeader>
         <CardTitle>Регистрация</CardTitle>
         <CardDescription>
-          Создайте новый аккаунт для доступа к системе
+          Создайте новый аккаунт. Роль будет назначена администратором после регистрации.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -127,34 +123,17 @@ export function SignUpForm() {
               disabled={loading}
             />
           </div>
-          
           <div className="space-y-2">
-            <Label>Роль</Label>
-            <Select value={role} onValueChange={(value: AppRole) => setRole(value)} required disabled={loading}>
-              <SelectTrigger>
-                <SelectValue placeholder="Выберите роль" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="coordinator">Координатор</SelectItem>
-                <SelectItem value="director">Директор</SelectItem>
-                <SelectItem value="super_admin">Супер администратор</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label htmlFor="clinicName">Название клиники</Label>
+            <Input
+              id="clinicName"
+              value={clinicName}
+              onChange={(e) => setClinicName(e.target.value)}
+              placeholder="Название вашей клиники"
+              required
+              disabled={loading}
+            />
           </div>
-          
-          {role === 'coordinator' && (
-            <div className="space-y-2">
-              <Label htmlFor="clinicName">Название клиники</Label>
-              <Input
-                id="clinicName"
-                value={clinicName}
-                onChange={(e) => setClinicName(e.target.value)}
-                placeholder="Название вашей клиники"
-                required
-                disabled={loading}
-              />
-            </div>
-          )}
           
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
