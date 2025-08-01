@@ -32,18 +32,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('Initial session:', session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        // Fetch user profile using any type temporarily until types update
-        const { data: profileData, error } = await (supabase as any)
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single();
-        
-        if (!error && profileData) {
-          setProfile(profileData as UserProfile);
+        try {
+          // Fetch user profile
+          const { data: profileData, error } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single();
+          
+          console.log('Profile data:', profileData, 'Error:', error);
+          
+          if (!error && profileData) {
+            setProfile(profileData as UserProfile);
+          } else {
+            console.error('Error fetching profile:', error);
+          }
+        } catch (err) {
+          console.error('Profile fetch error:', err);
         }
       }
       
@@ -57,14 +66,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          const { data: profileData, error } = await (supabase as any)
-            .from('user_profiles')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .single();
-          
-          if (!error && profileData) {
-            setProfile(profileData as UserProfile);
+          try {
+            const { data: profileData, error } = await supabase
+              .from('user_profiles')
+              .select('*')
+              .eq('user_id', session.user.id)
+              .single();
+            
+            console.log('Profile data on auth change:', profileData, 'Error:', error);
+            
+            if (!error && profileData) {
+              setProfile(profileData as UserProfile);
+            } else {
+              console.error('Error fetching profile on auth change:', error);
+            }
+          } catch (err) {
+            console.error('Profile fetch error on auth change:', err);
           }
         } else {
           setProfile(null);
@@ -78,16 +95,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    console.log('Attempting sign in for:', email);
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
-    if (error) throw error;
+    if (error) {
+      console.error('Sign in error:', error);
+      throw error;
+    }
   };
 
   const signOut = async () => {
+    console.log('Signing out');
     const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    if (error) {
+      console.error('Sign out error:', error);
+      throw error;
+    }
   };
 
   return (

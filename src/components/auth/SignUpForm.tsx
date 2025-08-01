@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 export function SignUpForm() {
@@ -25,7 +25,9 @@ export function SignUpForm() {
     setError(null);
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      console.log('Starting signup process for:', email);
+      
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -37,7 +39,34 @@ export function SignUpForm() {
         }
       });
 
-      if (error) throw error;
+      if (signUpError) {
+        console.error('Signup error:', signUpError);
+        throw signUpError;
+      }
+
+      console.log('Signup successful:', data);
+
+      // Если пользователь сразу подтвержден, создаем профиль
+      if (data.user && !data.user.email_confirmed_at) {
+        console.log('User needs email confirmation');
+      } else if (data.user) {
+        console.log('Creating user profile');
+        
+        // Создаем профиль пользователя
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .insert({
+            user_id: data.user.id,
+            email: data.user.email!,
+            full_name: fullName,
+            role: role as 'super_admin' | 'director' | 'coordinator',
+            clinic_name: role === 'coordinator' ? clinicName : null
+          });
+
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+        }
+      }
       
       setSuccess(true);
     } catch (err) {
@@ -52,9 +81,9 @@ export function SignUpForm() {
     return (
       <Card className="w-full max-w-md mx-auto">
         <CardContent className="pt-6">
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
+          <Alert className="border-green-200 bg-green-50">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
               Регистрация успешна! Проверьте свою электронную почту для подтверждения аккаунта.
             </AlertDescription>
           </Alert>
@@ -88,6 +117,7 @@ export function SignUpForm() {
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Ваше полное имя"
               required
+              disabled={loading}
             />
           </div>
           
@@ -100,6 +130,7 @@ export function SignUpForm() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your.email@example.com"
               required
+              disabled={loading}
             />
           </div>
           
@@ -113,12 +144,13 @@ export function SignUpForm() {
               placeholder="Минимум 6 символов"
               required
               minLength={6}
+              disabled={loading}
             />
           </div>
           
           <div className="space-y-2">
             <Label>Роль</Label>
-            <Select value={role} onValueChange={setRole} required>
+            <Select value={role} onValueChange={setRole} required disabled={loading}>
               <SelectTrigger>
                 <SelectValue placeholder="Выберите роль" />
               </SelectTrigger>
@@ -139,6 +171,7 @@ export function SignUpForm() {
                 onChange={(e) => setClinicName(e.target.value)}
                 placeholder="Название вашей клиники"
                 required
+                disabled={loading}
               />
             </div>
           )}

@@ -20,12 +20,19 @@ export function LoginForm() {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log('Attempting login for:', email);
+      
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (loginError) {
+        console.error('Login error:', loginError);
+        throw loginError;
+      }
+      
+      console.log('Login successful:', data);
     } catch (err) {
       console.error('Login error:', err);
       setError(err instanceof Error ? err.message : 'Ошибка входа');
@@ -60,6 +67,7 @@ export function LoginForm() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your.email@example.com"
               required
+              disabled={loading}
             />
           </div>
           
@@ -72,6 +80,7 @@ export function LoginForm() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Ваш пароль"
               required
+              disabled={loading}
             />
           </div>
           
