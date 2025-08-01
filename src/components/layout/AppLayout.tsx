@@ -9,7 +9,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const { profile, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const location = useLocation();
 
   const handleSignOut = async () => {
@@ -19,6 +19,38 @@ export function AppLayout({ children }: AppLayoutProps) {
       console.error('Error signing out:', error);
     }
   };
+
+  // If user is logged in but no profile, show minimal layout with sign out button
+  if (user && !profile) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b border-border bg-card">
+          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Hospital className="h-8 w-8 text-primary" />
+              <div>
+                <h1 className="text-xl font-bold text-foreground">амосрм</h1>
+                <p className="text-sm text-muted-foreground">Система управления пациентами</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-muted-foreground">Загрузка профиля...</div>
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Выйти
+              </Button>
+            </div>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-6">
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Загрузка данных пользователя...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   if (!profile) return null;
 
