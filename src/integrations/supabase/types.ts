@@ -535,6 +535,10 @@ export type Database = {
       }
     }
     Functions: {
+      delete_user_safely: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
       get_current_user_clinic: {
         Args: Record<PropertyKey, never>
         Returns: string

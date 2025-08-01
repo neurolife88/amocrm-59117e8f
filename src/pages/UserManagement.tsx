@@ -9,8 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Users, Search } from 'lucide-react';
+import { Shield, Users, Search, Trash2 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 interface UserProfile {
   id: string;
@@ -30,6 +31,9 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [updatingUser, setUpdatingUser] = useState<string | null>(null);
+  const [deletingUser, setDeletingUser] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
 
   // Защита доступа - только супер админ
   if (!authLoading && profile?.role !== 'super_admin') {
@@ -103,6 +107,55 @@ export default function UserManagement() {
     } finally {
       setUpdatingUser(null);
     }
+  };
+
+  const deleteUser = async (userId: string) => {
+    setDeletingUser(userId);
+    try {
+      const { error } = await supabase.rpc('delete_user_safely', {
+        user_uuid: userId
+      });
+
+      if (error) throw error;
+
+      // Удаляем пользователя из локального состояния
+      setUsers(prev => prev.filter(user => user.user_id !== userId));
+
+      toast({
+        title: "Успех",
+        description: "Пользователь удален",
+      });
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Ошибка",
+        description: error.message || "Не удалось удалить пользователя",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingUser(null);
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+    }
+  };
+
+  const handleDeleteClick = (user: UserProfile) => {
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (userToDelete) {
+      deleteUser(userToDelete.user_id);
+    }
+  };
+
+  const canDeleteUser = (user: UserProfile) => {
+    // Нельзя удалять самого себя
+    if (user.user_id === profile?.user_id) return false;
+    // Нельзя удалять других супер админов
+    if (user.role === 'super_admin') return false;
+    return true;
   };
 
   const getRoleBadgeVariant = (role: string) => {
@@ -198,7 +251,10 @@ export default function UserManagement() {
                   key={user.id}
                   user={user}
                   onUpdateRole={updateUserRole}
+                  onDeleteUser={handleDeleteClick}
                   isUpdating={updatingUser === user.user_id}
+                  isDeleting={deletingUser === user.user_id}
+                  canDelete={canDeleteUser(user)}
                   getRoleBadgeVariant={getRoleBadgeVariant}
                   getRoleDisplayName={getRoleDisplayName}
                 />
@@ -213,6 +269,17 @@ export default function UserManagement() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Удалить пользователя"
+        description={`Вы уверены, что хотите удалить пользователя ${userToDelete?.full_name || userToDelete?.email}? Это действие нельзя отменить.`}
+        confirmText="Удалить"
+        cancelText="Отменить"
+        onConfirm={handleDeleteConfirm}
+        destructive={true}
+      />
     </div>
   );
 }
@@ -220,12 +287,15 @@ export default function UserManagement() {
 interface UserRowProps {
   user: UserProfile;
   onUpdateRole: (userId: string, newRole: string, clinicName?: string) => void;
+  onDeleteUser: (user: UserProfile) => void;
   isUpdating: boolean;
+  isDeleting: boolean;
+  canDelete: boolean;
   getRoleBadgeVariant: (role: string) => any;
   getRoleDisplayName: (role: string) => string;
 }
 
-function UserRow({ user, onUpdateRole, isUpdating, getRoleBadgeVariant, getRoleDisplayName }: UserRowProps) {
+function UserRow({ user, onUpdateRole, onDeleteUser, isUpdating, isDeleting, canDelete, getRoleBadgeVariant, getRoleDisplayName }: UserRowProps) {
   const [selectedRole, setSelectedRole] = useState<'super_admin' | 'director' | 'coordinator'>(user.role);
   const [clinicName, setClinicName] = useState(user.clinic_name || '');
   const [isEditing, setIsEditing] = useState(false);
@@ -302,14 +372,27 @@ function UserRow({ user, onUpdateRole, isUpdating, getRoleBadgeVariant, getRoleD
             </Button>
           </div>
         ) : (
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={() => setIsEditing(true)}
-            disabled={isUpdating}
-          >
-            Изменить
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => setIsEditing(true)}
+              disabled={isUpdating || isDeleting}
+            >
+              Изменить
+            </Button>
+            {canDelete && (
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => onDeleteUser(user)}
+                disabled={isUpdating || isDeleting}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         )}
       </TableCell>
     </TableRow>
