@@ -9,9 +9,11 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   profileError: string | null;
+  emailVerified: boolean | null;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refetchProfile: () => Promise<void>;
+  resendVerificationEmail: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
 
   const fetchProfile = async (userId: string, retryCount = 0) => {
     try {
@@ -30,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('user_profiles')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
       
       if (!error && profileData) {
         setProfile(profileData);
@@ -50,6 +53,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const resendVerificationEmail = async () => {
+    if (!user?.email) return;
+    
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: user.email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`
+      }
+    });
+    
+    if (error) throw error;
+  };
+
   const refetchProfile = async () => {
     if (user?.id) {
       await fetchProfile(user.id);
@@ -61,12 +78,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setUser(session?.user ?? null);
+        setEmailVerified(session?.user?.email_confirmed_at ? true : false);
         
         if (session?.user) {
-          setTimeout(() => fetchProfile(session.user.id), 0);
+          if (session.user.email_confirmed_at) {
+            setTimeout(() => fetchProfile(session.user.id), 0);
+          } else {
+            setProfile(null);
+            setProfileError(null);
+          }
         } else {
           setProfile(null);
           setProfileError(null);
+          setEmailVerified(null);
         }
         
         setLoading(false);
@@ -103,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, profileError, signIn, signOut, refetchProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, profileError, emailVerified, signIn, signOut, refetchProfile, resendVerificationEmail }}>
       {children}
     </AuthContext.Provider>
   );

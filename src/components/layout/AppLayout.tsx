@@ -4,14 +4,20 @@ import { Button } from '@/components/ui/button';
 import { LogOut, Users, Hospital, Shield, Home } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { UserAvatar } from '@/components/common/UserAvatar';
+import { EmailVerificationAlert } from '@/components/auth/EmailVerificationAlert';
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const { user, profile, signOut, profileError, refetchProfile } = useAuth();
+  const { user, profile, signOut, profileError, refetchProfile, emailVerified } = useAuth();
   const location = useLocation();
+
+  // Show email verification alert if user is logged in but email not verified
+  if (user && emailVerified === false) {
+    return <EmailVerificationAlert />;
+  }
 
 
   const handleSignOut = async () => {
