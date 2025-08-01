@@ -2,9 +2,11 @@ import { useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { UserProfile } from '@/types/auth';
 import { useToast } from '@/hooks/use-toast';
+import { useClinics } from './useClinics';
 
 export function useUserManagement() {
   const { toast } = useToast();
+  const { clinics, loading: clinicsLoading } = useClinics();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -116,6 +118,8 @@ export function useUserManagement() {
     updatingUser,
     deletingUser,
     filteredUsers,
+    clinics,
+    clinicsLoading,
     loadUsers,
     updateUserRole,
     deleteUser,

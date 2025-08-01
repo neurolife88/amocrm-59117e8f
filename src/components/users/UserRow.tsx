@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Trash2 } from 'lucide-react';
 import { UserProfile, AppRole } from '@/types/auth';
+import { Clinic } from '@/types/clinic';
 import { RoleBadge } from '@/components/common/RoleBadge';
 import { UserAvatar } from '@/components/common/UserAvatar';
 
@@ -15,6 +16,8 @@ interface UserRowProps {
   isUpdating: boolean;
   isDeleting: boolean;
   canDelete: boolean;
+  clinics: Clinic[];
+  clinicsLoading: boolean;
 }
 
 export function UserRow({ 
@@ -23,7 +26,9 @@ export function UserRow({
   onDeleteUser, 
   isUpdating, 
   isDeleting, 
-  canDelete 
+  canDelete,
+  clinics,
+  clinicsLoading
 }: UserRowProps) {
   const [selectedRole, setSelectedRole] = useState<AppRole>(user.role);
   const [clinicName, setClinicName] = useState(user.clinic_name || '');
@@ -69,14 +74,28 @@ export function UserRow({
       </TableCell>
       <TableCell>
         {isEditing && selectedRole === 'coordinator' ? (
-          <Input
-            value={clinicName}
-            onChange={(e) => setClinicName(e.target.value)}
-            placeholder="Название клиники"
-            className="w-40"
-          />
+          <Select 
+            value={clinicName || ''} 
+            onValueChange={setClinicName}
+            disabled={clinicsLoading}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder={clinicsLoading ? "Загрузка..." : "Выберите клинику"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Не назначена</SelectItem>
+              {clinics.map((clinic) => (
+                <SelectItem key={clinic.id} value={clinic.short_name}>
+                  {clinic.full_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         ) : (
-          user.clinic_name || '-'
+          (() => {
+            const clinic = clinics.find(c => c.short_name === user.clinic_name);
+            return clinic ? clinic.full_name : (user.clinic_name || '-');
+          })()
         )}
       </TableCell>
       <TableCell>

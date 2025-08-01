@@ -20,6 +20,8 @@ export default function UserManagement() {
     updatingUser,
     deletingUser,
     filteredUsers,
+    clinics,
+    clinicsLoading,
     loadUsers,
     updateUserRole,
     deleteUser,
@@ -138,6 +140,8 @@ export default function UserManagement() {
                     isUpdating={updatingUser === user.user_id}
                     isDeleting={deletingUser === user.user_id}
                     canDelete={canDeleteUser(user)}
+                    clinics={clinics}
+                    clinicsLoading={clinicsLoading}
                   />
                 ))
               )}
