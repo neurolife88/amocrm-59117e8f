@@ -18,8 +18,10 @@ interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
+  profileError: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  refetchProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,71 +30,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  const fetchProfile = async (userId: string) => {
+    try {
+      console.log('🔍 Fetching profile for user ID:', userId);
+      setProfileError(null);
+      
+      const { data: profileData, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      console.log('📊 Profile fetch result:', { profileData, error });
+      
+      if (!error && profileData) {
+        console.log('✅ Profile loaded successfully:', profileData);
+        setProfile(profileData);
+        setProfileError(null);
+      } else {
+        console.error('❌ Error fetching profile:', error);
+        setProfileError(error?.message || 'Failed to load profile');
+        setProfile(null);
+      }
+    } catch (err) {
+      console.error('💥 Profile fetch exception:', err);
+      setProfileError('Network error while loading profile');
+      setProfile(null);
+    }
+  };
+
+  const refetchProfile = async () => {
+    if (user?.id) {
+      await fetchProfile(user.id);
+    }
+  };
 
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log('Initial session:', session);
+      console.log('🔐 Initial session:', session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        try {
-          // Fetch user profile
-          const { data: profileData, error } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .single();
-          
-          console.log('Profile data:', profileData, 'Error:', error);
-          
-          if (!error && profileData) {
-            setProfile(profileData);
-          } else {
-            console.error('Error fetching profile:', error);
-          }
-        } catch (err) {
-          console.error('Profile fetch error:', err);
-        }
+        await fetchProfile(session.user.id);
       }
       
       setLoading(false);
     }).catch(err => {
-      console.error('Session fetch error:', err);
+      console.error('💥 Session fetch error:', err);
       setLoading(false);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('Auth state changed:', event, session);
+        console.log('🔄 Auth state changed:', event, session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
           // Defer profile fetch to avoid blocking auth state change
           setTimeout(async () => {
-            try {
-              const { data: profileData, error } = await supabase
-                .from('user_profiles')
-                .select('*')
-                .eq('user_id', session.user.id)
-                .single();
-              
-              console.log('Profile data on auth change:', profileData, 'Error:', error);
-              
-              if (!error && profileData) {
-                setProfile(profileData);
-              } else {
-                console.error('Error fetching profile on auth change:', error);
-                setProfile(null);
-              }
-            } catch (err) {
-              console.error('Profile fetch error on auth change:', err);
-              setProfile(null);
-            }
+            await fetchProfile(session.user.id);
           }, 0);
         } else {
+          console.log('🚪 User logged out, clearing profile');
           setProfile(null);
+          setProfileError(null);
         }
         
         setLoading(false);
@@ -124,7 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, profileError, signIn, signOut, refetchProfile }}>
       {children}
     </AuthContext.Provider>
   );

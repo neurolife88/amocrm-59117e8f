@@ -9,8 +9,17 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, profileError, refetchProfile } = useAuth();
   const location = useLocation();
+
+  // Debug logging for profile state
+  console.log('🏗️ AppLayout render:', { 
+    hasUser: !!user, 
+    hasProfile: !!profile, 
+    profileRole: profile?.role,
+    profileError,
+    currentPath: location.pathname
+  });
 
   const handleSignOut = async () => {
     try {
@@ -20,7 +29,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     }
   };
 
-  // If user is logged in but no profile, show minimal layout with sign out button
+  // If user is logged in but no profile, show minimal layout with retry option
   if (user && !profile) {
     return (
       <div className="min-h-screen bg-background">
@@ -35,7 +44,9 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="text-sm text-muted-foreground">Загрузка профиля...</div>
+              <div className="text-sm text-muted-foreground">
+                {profileError ? 'Ошибка загрузки профиля' : 'Загрузка профиля...'}
+              </div>
               <Button variant="outline" size="sm" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Выйти
@@ -45,7 +56,16 @@ export function AppLayout({ children }: AppLayoutProps) {
         </header>
         <main className="container mx-auto px-4 py-6">
           <div className="text-center py-8">
-            <p className="text-muted-foreground">Загрузка данных пользователя...</p>
+            {profileError ? (
+              <div className="space-y-4">
+                <p className="text-destructive">Ошибка: {profileError}</p>
+                <Button onClick={refetchProfile} variant="outline">
+                  Попробовать снова
+                </Button>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">Загрузка данных пользователя...</p>
+            )}
           </div>
         </main>
       </div>
@@ -125,6 +145,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
           </nav>
         )}
+
 
         {/* Main content */}
         <main className="container mx-auto px-4 py-6">
