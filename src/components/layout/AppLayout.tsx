@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { LogOut, Users, Hospital, Shield, Home } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { UserAvatar } from '@/components/common/UserAvatar';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -12,14 +13,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { user, profile, signOut, profileError, refetchProfile } = useAuth();
   const location = useLocation();
 
-  // Debug logging for profile state
-  console.log('🏗️ AppLayout render:', { 
-    hasUser: !!user, 
-    hasProfile: !!profile, 
-    profileRole: profile?.role,
-    profileError,
-    currentPath: location.pathname
-  });
 
   const handleSignOut = async () => {
     try {
@@ -95,8 +88,8 @@ export function AppLayout({ children }: AppLayoutProps) {
               </div>
             )}
             
-            <div className="flex items-center space-x-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center space-x-3">
+              <UserAvatar user={profile} size="sm" />
               <div className="text-sm">
                 <div className="font-medium text-foreground">{profile.full_name || profile.email}</div>
                 <div className="text-muted-foreground capitalize">
