@@ -3,6 +3,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { PatientData, PatientFilters } from '@/types/patient';
 import { useAuth } from '@/hooks/useAuth';
+import type { Database } from '@/integrations/supabase/types';
+
+type MasterViewRow = Database['public']['Views']['super_admin_master_view']['Row'];
 
 export function usePatients() {
   const [patients, setPatients] = useState<PatientData[]>([]);
@@ -17,8 +20,7 @@ export function usePatients() {
     setError(null);
     
     try {
-      // Using any type temporarily until Supabase types update
-      let query = (supabase as any)
+      let query = supabase
         .from('super_admin_master_view')
         .select('*');
         
@@ -81,7 +83,41 @@ export function usePatients() {
       const { data, error: queryError } = await query.order('arrival_datetime', { ascending: true });
       
       if (queryError) throw queryError;
-      setPatients((data || []) as PatientData[]);
+      
+      // Transform the data to match PatientData type
+      const transformedData: PatientData[] = (data || []).map((row: MasterViewRow) => ({
+        deal_id: row.deal_id || 0,
+        patient_full_name: row.patient_full_name || '',
+        clinic_name: row.clinic_name || '',
+        patient_status: (row.patient_status as 'Arriving' | 'In Treatment' | 'Departed') || 'Unknown',
+        arrival_datetime: row.arrival_datetime || '',
+        arrival_transport_type: row.arrival_transport_type || '',
+        arrival_city: row.arrival_city || '',
+        arrival_flight_number: row.arrival_flight_number || '',
+        arrival_terminal: row.arrival_terminal || '',
+        passengers_count: row.passengers_count || '',
+        apartment_number: row.apartment_number,
+        departure_city: row.departure_city,
+        departure_datetime: row.departure_datetime,
+        departure_flight_number: row.departure_flight_number,
+        departure_transport_type: row.departure_transport_type || '',
+        visa_type: row.visa_type || '',
+        visa_days: row.visa_days || 0,
+        visa_expiry_date: row.visa_expiry_date || '',
+        visa_status: (row.visa_status as 'Active' | 'Expiring Soon' | 'Expired') || 'Unknown',
+        days_until_visa_expires: row.days_until_visa_expires || 0,
+        visa_corridor_start: row.visa_corridor_start,
+        visa_corridor_end: row.visa_corridor_end,
+        patient_phone: row.patient_phone,
+        patient_email: row.patient_email,
+        patient_country: row.patient_country,
+        patient_passport: row.patient_passport,
+        created_at: row.deal_created_at || '',
+        updated_at: row.deal_updated_at || '',
+        amocrm_contact_id: row.amocrm_contact_id
+      }));
+      
+      setPatients(transformedData);
     } catch (err) {
       console.error('Error loading patients:', err);
       setError(err instanceof Error ? err.message : 'Failed to load patients');

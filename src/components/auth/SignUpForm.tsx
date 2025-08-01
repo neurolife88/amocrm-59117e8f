@@ -8,12 +8,15 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+
+type AppRole = Database['public']['Enums']['app_role'];
 
 export function SignUpForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<string>('');
+  const [role, setRole] = useState<AppRole | ''>('');
   const [clinicName, setClinicName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,29 +49,6 @@ export function SignUpForm() {
       }
 
       console.log('Signup successful:', data);
-
-      // Create user profile after successful signup
-      if (data.user) {
-        console.log('Creating user profile for user:', data.user.id);
-        
-        // Using any to bypass TypeScript until types update
-        const { error: profileError } = await (supabase as any)
-          .from('user_profiles')
-          .insert({
-            user_id: data.user.id,
-            email: data.user.email!,
-            full_name: fullName,
-            role: role as 'super_admin' | 'director' | 'coordinator',
-            clinic_name: role === 'coordinator' ? clinicName : null
-          });
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-          // Don't throw here - user was created successfully
-        } else {
-          console.log('Profile created successfully');
-        }
-      }
       
       setSuccess(true);
     } catch (err) {
@@ -152,7 +132,7 @@ export function SignUpForm() {
           
           <div className="space-y-2">
             <Label>Роль</Label>
-            <Select value={role} onValueChange={setRole} required disabled={loading}>
+            <Select value={role} onValueChange={(value: AppRole) => setRole(value)} required disabled={loading}>
               <SelectTrigger>
                 <SelectValue placeholder="Выберите роль" />
               </SelectTrigger>

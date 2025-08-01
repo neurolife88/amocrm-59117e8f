@@ -2,17 +2,9 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 
-interface UserProfile {
-  id: string;
-  user_id: string;
-  email: string;
-  full_name: string | null;
-  role: 'super_admin' | 'director' | 'coordinator';
-  clinic_name: string | null;
-  created_at: string;
-  updated_at: string;
-}
+type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
 
 interface AuthContextType {
   user: User | null;
@@ -37,8 +29,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (session?.user) {
         try {
-          // Fetch user profile - using any to bypass TypeScript until types update
-          const { data: profileData, error } = await (supabase as any)
+          // Fetch user profile
+          const { data: profileData, error } = await supabase
             .from('user_profiles')
             .select('*')
             .eq('user_id', session.user.id)
@@ -47,7 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log('Profile data:', profileData, 'Error:', error);
           
           if (!error && profileData) {
-            setProfile(profileData as UserProfile);
+            setProfile(profileData);
           } else {
             console.error('Error fetching profile:', error);
           }
@@ -67,8 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (session?.user) {
           try {
-            // Using any to bypass TypeScript until types update
-            const { data: profileData, error } = await (supabase as any)
+            // Fetch user profile
+            const { data: profileData, error } = await supabase
               .from('user_profiles')
               .select('*')
               .eq('user_id', session.user.id)
@@ -77,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('Profile data on auth change:', profileData, 'Error:', error);
             
             if (!error && profileData) {
-              setProfile(profileData as UserProfile);
+              setProfile(profileData);
             } else {
               console.error('Error fetching profile on auth change:', error);
             }
