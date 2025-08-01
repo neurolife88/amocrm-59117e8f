@@ -37,8 +37,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (session?.user) {
         try {
-          // Fetch user profile
-          const { data: profileData, error } = await supabase
+          // Fetch user profile - using any to bypass TypeScript until types update
+          const { data: profileData, error } = await (supabase as any)
             .from('user_profiles')
             .select('*')
             .eq('user_id', session.user.id)
@@ -67,7 +67,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (session?.user) {
           try {
-            const { data: profileData, error } = await supabase
+            // Using any to bypass TypeScript until types update
+            const { data: profileData, error } = await (supabase as any)
               .from('user_profiles')
               .select('*')
               .eq('user_id', session.user.id)

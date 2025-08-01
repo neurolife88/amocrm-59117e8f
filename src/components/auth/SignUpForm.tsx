@@ -31,6 +31,7 @@ export function SignUpForm() {
         email,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/`,
           data: {
             full_name: fullName,
             role,
@@ -46,14 +47,12 @@ export function SignUpForm() {
 
       console.log('Signup successful:', data);
 
-      // Если пользователь сразу подтвержден, создаем профиль
-      if (data.user && !data.user.email_confirmed_at) {
-        console.log('User needs email confirmation');
-      } else if (data.user) {
-        console.log('Creating user profile');
+      // Create user profile after successful signup
+      if (data.user) {
+        console.log('Creating user profile for user:', data.user.id);
         
-        // Создаем профиль пользователя
-        const { error: profileError } = await supabase
+        // Using any to bypass TypeScript until types update
+        const { error: profileError } = await (supabase as any)
           .from('user_profiles')
           .insert({
             user_id: data.user.id,
@@ -65,6 +64,9 @@ export function SignUpForm() {
 
         if (profileError) {
           console.error('Profile creation error:', profileError);
+          // Don't throw here - user was created successfully
+        } else {
+          console.log('Profile created successfully');
         }
       }
       
