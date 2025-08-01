@@ -57,6 +57,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       setLoading(false);
+    }).catch(err => {
+      console.error('Session fetch error:', err);
+      setLoading(false);
     });
 
     // Listen for auth changes
