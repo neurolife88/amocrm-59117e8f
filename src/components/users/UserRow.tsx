@@ -84,7 +84,7 @@ export function UserRow({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">Не назначена</SelectItem>
-              {clinics.map((clinic) => (
+              {clinics && clinics.map((clinic) => (
                 <SelectItem key={clinic.id} value={clinic.short_name}>
                   {clinic.full_name}
                 </SelectItem>
@@ -93,6 +93,9 @@ export function UserRow({
           </Select>
         ) : (
           (() => {
+            if (!clinics || clinics.length === 0) {
+              return user.clinic_name || '-';
+            }
             const clinic = clinics.find(c => c.short_name === user.clinic_name);
             return clinic ? clinic.full_name : (user.clinic_name || '-');
           })()
