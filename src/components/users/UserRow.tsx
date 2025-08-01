@@ -75,15 +75,15 @@ export function UserRow({
       <TableCell>
         {isEditing && selectedRole === 'coordinator' ? (
           <Select 
-            value={clinicName || ''} 
-            onValueChange={setClinicName}
+            value={clinicName || 'none'} 
+            onValueChange={(value) => setClinicName(value === 'none' ? '' : value)}
             disabled={clinicsLoading}
           >
             <SelectTrigger className="w-48">
               <SelectValue placeholder={clinicsLoading ? "Загрузка..." : "Выберите клинику"} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Не назначена</SelectItem>
+              <SelectItem value="none">Не назначена</SelectItem>
               {clinics && clinics.map((clinic) => (
                 <SelectItem key={clinic.id} value={clinic.short_name}>
                   {clinic.full_name}
