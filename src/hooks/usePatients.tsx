@@ -94,6 +94,10 @@ export function usePatients() {
         return dateA - dateB;
       });
       
+      // Log raw data for debugging
+      console.log('Raw data from database:', allData?.slice(0, 3));
+      console.log('Filtered data sample:', filteredData?.slice(0, 3));
+      
       // Transform the data to match PatientData type
       const transformedData: PatientData[] = filteredData.map((row: any) => ({
         deal_id: row.deal_id || 0,
