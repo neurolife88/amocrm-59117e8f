@@ -89,17 +89,6 @@ export function LoginForm() {
             Войти
           </Button>
         </form>
-        
-        <div className="mt-6 p-4 bg-muted rounded-lg">
-          <p className="text-sm font-medium mb-2">Тестовые учетные данные:</p>
-          <div className="text-xs space-y-1">
-            <p><strong>Супер администратор:</strong> superadmin@test.com</p>
-            <p><strong>Директор:</strong> director@test.com</p>
-            <p><strong>Координатор 1:</strong> coordinator1@test.com</p>
-            <p><strong>Координатор 2:</strong> coordinator2@test.com</p>
-            <p className="mt-2 text-muted-foreground">Пароль для всех: test123</p>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
