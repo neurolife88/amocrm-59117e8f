@@ -12,7 +12,6 @@ export function SignUpForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [clinicName, setClinicName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -32,7 +31,6 @@ export function SignUpForm() {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
             full_name: fullName,
-            clinic_name: clinicName || null,
           }
         }
       });
@@ -73,7 +71,7 @@ export function SignUpForm() {
       <CardHeader>
         <CardTitle>Регистрация</CardTitle>
         <CardDescription>
-          Создайте новый аккаунт. Роль будет назначена администратором после регистрации.
+          Создайте новый аккаунт. Клинику координатору назначит супер-администратор.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -120,17 +118,6 @@ export function SignUpForm() {
               placeholder="Минимум 6 символов"
               required
               minLength={6}
-              disabled={loading}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="clinicName">Название клиники</Label>
-            <Input
-              id="clinicName"
-              value={clinicName}
-              onChange={(e) => setClinicName(e.target.value)}
-              placeholder="Название вашей клиники"
-              required
               disabled={loading}
             />
           </div>
