@@ -2,9 +2,11 @@
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Calendar, AlertTriangle, Building } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Search, Calendar, AlertTriangle, Building, Hospital } from 'lucide-react';
 import { PatientFilters } from '@/types/patient';
 import { useAuth } from '@/hooks/useAuth';
+import { useClinics } from '@/hooks/useClinics';
 
 interface FilterPanelProps {
   onFilterChange: (filters: PatientFilters) => void;
@@ -13,6 +15,7 @@ interface FilterPanelProps {
 
 export function FilterPanel({ onFilterChange, currentFilters }: FilterPanelProps) {
   const { profile } = useAuth();
+  const { clinics } = useClinics();
   const [searchTerm, setSearchTerm] = useState(currentFilters.search || '');
 
   const handleSearchChange = (value: string) => {
@@ -30,6 +33,10 @@ export function FilterPanel({ onFilterChange, currentFilters }: FilterPanelProps
 
   const handleUrgentVisasToggle = () => {
     onFilterChange({ ...currentFilters, urgentVisas: !currentFilters.urgentVisas });
+  };
+
+  const handleClinicChange = (clinic: string) => {
+    onFilterChange({ ...currentFilters, clinic: clinic === 'all' ? undefined : clinic });
   };
 
   const resetFilters = () => {
@@ -120,6 +127,32 @@ export function FilterPanel({ onFilterChange, currentFilters }: FilterPanelProps
           {currentFilters.urgentVisas ? 'Включено' : 'Выключено'}
         </Button>
       </div>
+
+      {/* Clinic Filter (Super Admin only) */}
+      {profile?.role === 'super_admin' && (
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <Hospital className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Клиника:</span>
+          </div>
+          <Select 
+            value={currentFilters.clinic || 'all'} 
+            onValueChange={handleClinicChange}
+          >
+            <SelectTrigger className="w-full bg-background">
+              <SelectValue placeholder="Выберите клинику" />
+            </SelectTrigger>
+            <SelectContent className="bg-background border border-border z-50">
+              <SelectItem value="all">Все клиники</SelectItem>
+              {clinics.map((clinic) => (
+                <SelectItem key={clinic.short_name} value={clinic.short_name}>
+                  {clinic.full_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Reset Button */}
       <div className="pt-2 border-t border-border">
