@@ -35,15 +35,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        // Fetch user profile
-        const { data: profileData, error } = await supabase
+        // Fetch user profile using any type temporarily until types update
+        const { data: profileData, error } = await (supabase as any)
           .from('user_profiles')
           .select('*')
           .eq('user_id', session.user.id)
           .single();
         
         if (!error && profileData) {
-          setProfile(profileData);
+          setProfile(profileData as UserProfile);
         }
       }
       
@@ -57,14 +57,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          const { data: profileData, error } = await supabase
+          const { data: profileData, error } = await (supabase as any)
             .from('user_profiles')
             .select('*')
             .eq('user_id', session.user.id)
             .single();
           
           if (!error && profileData) {
-            setProfile(profileData);
+            setProfile(profileData as UserProfile);
           }
         } else {
           setProfile(null);

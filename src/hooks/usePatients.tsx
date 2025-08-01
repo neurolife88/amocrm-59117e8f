@@ -17,7 +17,8 @@ export function usePatients() {
     setError(null);
     
     try {
-      let query = supabase
+      // Using any type temporarily until Supabase types update
+      let query = (supabase as any)
         .from('super_admin_master_view')
         .select('*');
         
@@ -80,7 +81,7 @@ export function usePatients() {
       const { data, error: queryError } = await query.order('arrival_datetime', { ascending: true });
       
       if (queryError) throw queryError;
-      setPatients(data || []);
+      setPatients((data || []) as PatientData[]);
     } catch (err) {
       console.error('Error loading patients:', err);
       setError(err instanceof Error ? err.message : 'Failed to load patients');
