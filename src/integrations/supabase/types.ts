@@ -134,6 +134,13 @@ export type Database = {
             referencedRelation: "deals"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contacts_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "super_admin_master_view"
+            referencedColumns: ["deal_id"]
+          },
         ]
       }
       contacts_oll: {
@@ -300,6 +307,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tickets_from_treatment_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: true
+            referencedRelation: "super_admin_master_view"
+            referencedColumns: ["deal_id"]
+          },
+          {
             foreignKeyName: "tickets_from_treatment_departure_city_fkey"
             columns: ["departure_city"]
             isOneToOne: false
@@ -359,7 +373,47 @@ export type Database = {
             referencedRelation: "deals"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tickets_to_china_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: true
+            referencedRelation: "super_admin_master_view"
+            referencedColumns: ["deal_id"]
+          },
         ]
+      }
+      user_profiles: {
+        Row: {
+          clinic_name: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          clinic_name?: string | null
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          clinic_name?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       visas: {
         Row: {
@@ -403,17 +457,95 @@ export type Database = {
             referencedRelation: "deals"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "visas_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: true
+            referencedRelation: "super_admin_master_view"
+            referencedColumns: ["deal_id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      super_admin_master_view: {
+        Row: {
+          amocrm_contact_id: number | null
+          apartment_number: string | null
+          arrival_city: string | null
+          arrival_datetime: string | null
+          arrival_flight_number: string | null
+          arrival_terminal: string | null
+          arrival_transport_type: string | null
+          clinic_address_chinese: string | null
+          clinic_address_english: string | null
+          clinic_full_name: string | null
+          clinic_name: string | null
+          days_until_visa_expires: unknown | null
+          deal_country: string | null
+          deal_created_at: string | null
+          deal_id: number | null
+          deal_name: string | null
+          deal_updated_at: string | null
+          departure_airport_code: string | null
+          departure_city: string | null
+          departure_datetime: string | null
+          departure_flight_number: string | null
+          departure_transport_type: string | null
+          lead_id: string | null
+          passengers_count: string | null
+          patient_birthday: string | null
+          patient_city: string | null
+          patient_country: string | null
+          patient_email: string | null
+          patient_first_name: string | null
+          patient_full_name: string | null
+          patient_last_name: string | null
+          patient_passport: string | null
+          patient_phone: string | null
+          patient_preferred_name: string | null
+          patient_status: string | null
+          pipeline_name: string | null
+          status_name: string | null
+          visa_city: string | null
+          visa_corridor_end: string | null
+          visa_corridor_start: string | null
+          visa_days: number | null
+          visa_entries_count: string | null
+          visa_expiry_date: string | null
+          visa_status: string | null
+          visa_type: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_clinic_name_fkey"
+            columns: ["clinic_name"]
+            isOneToOne: false
+            referencedRelation: "clinics_directory"
+            referencedColumns: ["short_name"]
+          },
+          {
+            foreignKeyName: "tickets_from_treatment_departure_city_fkey"
+            columns: ["departure_city"]
+            isOneToOne: false
+            referencedRelation: "cities_directory"
+            referencedColumns: ["city_name"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      get_current_user_clinic: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "director" | "coordinator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -540,6 +672,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "director", "coordinator"],
+    },
   },
 } as const
