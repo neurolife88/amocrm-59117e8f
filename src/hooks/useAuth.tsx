@@ -2,9 +2,17 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
 
-type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
+type UserProfile = {
+  id: string;
+  user_id: string;
+  email: string;
+  full_name: string | null;
+  role: 'super_admin' | 'director' | 'coordinator';
+  clinic_name: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
 interface AuthContextType {
   user: User | null;
@@ -29,12 +37,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (session?.user) {
         try {
-          // Fetch user profile
+          // Fetch user profile using RPC or try direct query
           const { data: profileData, error } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .single();
+            .rpc('get_user_profile', { user_uuid: session.user.id });
           
           console.log('Profile data:', profileData, 'Error:', error);
           
@@ -59,12 +64,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (session?.user) {
           try {
-            // Fetch user profile
+            // Fetch user profile using RPC or try direct query
             const { data: profileData, error } = await supabase
-              .from('user_profiles')
-              .select('*')
-              .eq('user_id', session.user.id)
-              .single();
+              .rpc('get_user_profile', { user_uuid: session.user.id });
             
             console.log('Profile data on auth change:', profileData, 'Error:', error);
             

@@ -3,9 +3,44 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { PatientData, PatientFilters } from '@/types/patient';
 import { useAuth } from '@/hooks/useAuth';
-import type { Database } from '@/integrations/supabase/types';
 
-type MasterViewRow = Database['public']['Views']['super_admin_master_view']['Row'];
+type MasterViewRow = {
+  deal_id: number;
+  patient_full_name: string;
+  clinic_name: string;
+  patient_status: 'Arriving' | 'In Treatment' | 'Departed' | 'Unknown';
+  arrival_datetime: string;
+  arrival_transport_type: string;
+  arrival_city: string;
+  arrival_flight_number: string;
+  arrival_terminal: string;
+  passengers_count: string;
+  apartment_number: string | null;
+  departure_city: string | null;
+  departure_datetime: string | null;
+  departure_flight_number: string | null;
+  departure_transport_type: string;
+  visa_type: string;
+  visa_days: number;
+  visa_expiry_date: string;
+  visa_status: 'Active' | 'Expiring Soon' | 'Expired' | 'Unknown';
+  days_until_visa_expires: number;
+  visa_corridor_start: string | null;
+  visa_corridor_end: string | null;
+  patient_phone: string | null;
+  patient_email: string | null;
+  patient_country: string | null;
+  patient_passport: string | null;
+  deal_created_at: string;
+  deal_updated_at: string;
+  amocrm_contact_id: number | null;
+  lead_id: string | null;
+  deal_name: string | null;
+  pipeline_name: string | null;
+  status_name: string | null;
+  deal_country: string | null;
+  visa_city: string | null;
+};
 
 export function usePatients() {
   const [patients, setPatients] = useState<PatientData[]>([]);
@@ -20,18 +55,27 @@ export function usePatients() {
     setError(null);
     
     try {
-      let query = supabase
-        .from('super_admin_master_view')
-        .select('*');
+      // Use RPC call to get master view data
+      let { data, error: queryError } = await supabase
+        .rpc('get_super_admin_master_view');
         
       // Role-based filtering
       if (profile.role === 'coordinator' && profile.clinic_name) {
         query = query.eq('clinic_name', profile.clinic_name);
       }
       
+      if (queryError) throw queryError;
+      
+      let filteredData = data || [];
+      
+      // Apply role-based filtering
+      if (profile.role === 'coordinator' && profile.clinic_name) {
+        filteredData = filteredData.filter(row => row.clinic_name === profile.clinic_name);
+      }
+      
       // Apply filters
       if (filters.clinic && profile.role !== 'coordinator') {
-        query = query.eq('clinic_name', filters.clinic);
+        filteredData = filteredData.filter(row => row.clinic_name === filters.clinic);
       }
       
       if (filters.status !== 'all') {
@@ -40,11 +84,13 @@ export function usePatients() {
           'in_treatment': 'In Treatment',
           'departing': 'Departed'
         };
-        query = query.eq('patient_status', statusMap[filters.status]);
+        filteredData = filteredData.filter(row => row.patient_status === statusMap[filters.status]);
       }
       
       if (filters.search) {
-        query = query.ilike('patient_full_name', `%${filters.search}%`);
+        filteredData = filteredData.filter(row => 
+          row.patient_full_name?.toLowerCase().includes(filters.search.toLowerCase())
+        );
       }
 
       // Date filters
@@ -71,25 +117,24 @@ export function usePatients() {
             endDate = new Date(2100, 0, 1);
         }
 
-        query = query
-          .gte('arrival_datetime', startDate.toISOString())
-          .lt('arrival_datetime', endDate.toISOString());
+        filteredData = filteredData.filter(row => {
+          const arrivalDate = new Date(row.arrival_datetime);
+          return arrivalDate >= startDate && arrivalDate < endDate;
+        });
       }
 
       if (filters.urgentVisas) {
-        query = query.eq('visa_status', 'Expiring Soon');
+        filteredData = filteredData.filter(row => row.visa_status === 'Expiring Soon');
       }
-      
-      const { data, error: queryError } = await query.order('arrival_datetime', { ascending: true });
       
       if (queryError) throw queryError;
       
       // Transform the data to match PatientData type
-      const transformedData: PatientData[] = (data || []).map((row: MasterViewRow) => ({
+      const transformedData: PatientData[] = filteredData.map((row: MasterViewRow) => ({
         deal_id: row.deal_id || 0,
         patient_full_name: row.patient_full_name || '',
         clinic_name: row.clinic_name || '',
-        patient_status: (row.patient_status as 'Arriving' | 'In Treatment' | 'Departed') || 'Unknown',
+        patient_status: row.patient_status || 'Unknown',
         arrival_datetime: row.arrival_datetime || '',
         arrival_transport_type: row.arrival_transport_type || '',
         arrival_city: row.arrival_city || '',
@@ -104,7 +149,7 @@ export function usePatients() {
         visa_type: row.visa_type || '',
         visa_days: row.visa_days || 0,
         visa_expiry_date: row.visa_expiry_date || '',
-        visa_status: (row.visa_status as 'Active' | 'Expiring Soon' | 'Expired') || 'Unknown',
+        visa_status: row.visa_status || 'Unknown',
         days_until_visa_expires: row.days_until_visa_expires || 0,
         visa_corridor_start: row.visa_corridor_start,
         visa_corridor_end: row.visa_corridor_end,
@@ -114,7 +159,13 @@ export function usePatients() {
         patient_passport: row.patient_passport,
         created_at: row.deal_created_at || '',
         updated_at: row.deal_updated_at || '',
-        amocrm_contact_id: row.amocrm_contact_id
+        amocrm_contact_id: row.amocrm_contact_id,
+        lead_id: row.lead_id,
+        deal_name: row.deal_name,
+        pipeline_name: row.pipeline_name,
+        status_name: row.status_name,
+        deal_country: row.deal_country,
+        visa_city: row.visa_city
       }));
       
       setPatients(transformedData);
