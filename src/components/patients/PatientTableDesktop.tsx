@@ -248,6 +248,7 @@ export function PatientTableDesktop({
                 <TableHead>Телефон</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Паспорт</TableHead>
+                <TableHead>Позиция</TableHead>
               </>
             )}
           </TableRow>
@@ -301,6 +302,7 @@ export function PatientTableDesktop({
                   <TableCell>{patient.patient_phone || '-'}</TableCell>
                   <TableCell>{patient.patient_email || '-'}</TableCell>
                   <TableCell>{patient.patient_passport || '-'}</TableCell>
+                  <TableCell>{patient.patient_position || '-'}</TableCell>
                 </>
               )}
             </TableRow>

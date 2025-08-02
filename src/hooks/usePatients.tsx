@@ -123,6 +123,7 @@ export function usePatients() {
         patient_country: row.patient_country,
         patient_city: row.patient_city,
         patient_passport: row.patient_passport,
+        patient_position: row.patient_position,
         amocrm_contact_id: row.amocrm_contact_id,
         arrival_datetime: row.arrival_datetime || '',
         arrival_transport_type: row.arrival_transport_type || '',

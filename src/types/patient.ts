@@ -30,6 +30,7 @@ export interface PatientData {
   patient_country: string | null;
   patient_city: string | null;
   patient_passport: string | null;
+  patient_position: string | null;
   amocrm_contact_id: number | null;
   
   // Arrival data (read-only)
