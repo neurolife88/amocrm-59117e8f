@@ -571,6 +571,7 @@ export type Database = {
           patient_country: string
           patient_city: string
           patient_passport: string
+          patient_position: string
           amocrm_contact_id: number
           arrival_datetime: string
           arrival_transport_type: string
@@ -621,6 +622,7 @@ export type Database = {
           patient_country: string
           patient_city: string
           patient_passport: string
+          patient_position: string
           amocrm_contact_id: number
           arrival_datetime: string
           arrival_transport_type: string
