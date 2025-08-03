@@ -481,7 +481,7 @@ export type Database = {
           clinic_address_english: string | null
           clinic_full_name: string | null
           clinic_name: string | null
-          days_until_visa_expires: unknown | null
+          days_until_visa_expires: number | null
           deal_country: string | null
           deal_created_at: string | null
           deal_id: number | null
@@ -502,8 +502,8 @@ export type Database = {
           patient_full_name: string | null
           patient_last_name: string | null
           patient_passport: string | null
-          patient_position: string | null
           patient_phone: string | null
+          patient_position: string | null
           patient_preferred_name: string | null
           patient_status: string | null
           pipeline_name: string | null
@@ -513,7 +513,6 @@ export type Database = {
           visa_corridor_start: string | null
           visa_days: number | null
           visa_entries_count: string | null
-          visa_expiry_date: string | null
           visa_status: string | null
           visa_type: string | null
         }
