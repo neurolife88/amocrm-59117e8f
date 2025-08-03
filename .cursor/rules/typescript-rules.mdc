@@ -1,0 +1,26 @@
+---
+alwaysApply: true
+---
+# TypeScript Rules
+
+## Code Style
+- Use strict TypeScript configuration
+- Prefer interfaces over types for object shapes
+- Use type guards for runtime type checking
+- Avoid `any` type, use `unknown` when needed
+- Use union types for better type safety
+- Prefer const assertions for readonly data
+
+## Best Practices
+- Always define return types for functions
+- Use generic types for reusable components
+- Implement proper error handling with typed errors
+- Use discriminated unions for state management
+- Prefer readonly arrays when possible
+- Use utility types (Partial, Pick, Omit) effectively
+
+## Project Structure
+- Organize types in separate files
+- Use barrel exports for clean imports
+- Group related types together
+- Use namespaces for complex type hierarchies

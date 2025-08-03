@@ -502,6 +502,7 @@ export type Database = {
           patient_full_name: string | null
           patient_last_name: string | null
           patient_passport: string | null
+          patient_position: string | null
           patient_phone: string | null
           patient_preferred_name: string | null
           patient_status: string | null

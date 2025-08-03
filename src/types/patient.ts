@@ -6,7 +6,7 @@ export interface PatientData {
   deal_name: string | null;
   patient_full_name: string | null;
   clinic_name: string | null;
-  patient_status: 'Arriving' | 'In Treatment' | 'Departed' | 'Unknown';
+  // patient_status удален - теперь используется только status_name из AmoCRM
   
   // Deal data
   pipeline_name: string | null;
@@ -61,12 +61,20 @@ export interface PatientData {
 }
 
 export interface PatientFilters {
-  dateRange: 'today' | 'tomorrow' | 'week' | 'all';
-  status: 'arriving' | 'in_treatment' | 'departing' | 'all';
+  // dateRange удален - фильтр по периоду времени больше не используется
+  // status удален - теперь используется только status_name из AmoCRM
   clinic?: string;
   search?: string;
-  urgentVisas?: boolean;
 }
 
-export type FieldGroup = 'basic' | 'arrival' | 'departure' | 'visa' | 'personal';
+export type FieldGroup = 'basic' | 'arrival' | 'departure' | 'treatment' | 'visa' | 'personal';
 export type EditableField = 'apartment_number' | 'departure_city' | 'departure_datetime' | 'departure_flight_number';
+
+export interface SortConfig {
+  field: keyof PatientData;
+  direction: 'asc' | 'desc';
+}
+
+export interface FieldGroupSortConfig {
+  [key in FieldGroup]: SortConfig;
+}

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { usePatients } from '@/hooks/usePatients';
 import { PatientFilters, FieldGroup } from '@/types/patient';
 import { FilterPanel } from './FilterPanel';
@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { getSortedPatientsForFieldGroup } from '@/lib/sorting';
 
 export function PatientsTable() {
   const { profile } = useAuth();
@@ -16,13 +17,10 @@ export function PatientsTable() {
   const [isMobile, setIsMobile] = useState(false);
   
   const [filters, setFilters] = useState<PatientFilters>({
-    dateRange: 'all',
-    status: 'all',
-    search: '',
-    urgentVisas: false
+    search: ''
   });
 
-  const [visibleFieldGroups, setVisibleFieldGroups] = useState<FieldGroup[]>(['basic', 'arrival']);
+  const [visibleFieldGroups, setVisibleFieldGroups] = useState<FieldGroup[]>(['basic']);
 
   // Check for mobile view
   useEffect(() => {
@@ -47,12 +45,63 @@ export function PatientsTable() {
   };
 
   const handleFieldGroupToggle = (group: FieldGroup) => {
-    setVisibleFieldGroups(prev => 
-      prev.includes(group) 
-        ? prev.filter(g => g !== group)
-        : [...prev, group]
-    );
+    setVisibleFieldGroups([group]);
   };
+
+  // Автоматическая сортировка и фильтрация пациентов в зависимости от выбранной группы полей
+  const sortedPatients = useMemo(() => {
+    if (patients.length === 0) return patients;
+    
+    const currentFieldGroup = visibleFieldGroups[0];
+    if (!currentFieldGroup) return patients;
+    
+
+    
+    // Фильтрация по статусам в зависимости от выбранной группы
+    let filteredPatients = patients;
+    
+    switch (currentFieldGroup) {
+      case 'arrival':
+        // Только "Билеты куплены" и "квартира заказана"
+        filteredPatients = patients.filter(p => 
+          p.status_name === 'Билеты куплены' || p.status_name === 'квартира заказана'
+        );
+        break;
+        
+      case 'treatment':
+        // Только "на лечении" и "обратные билеты с лечения"
+        filteredPatients = patients.filter(p => 
+          p.status_name === 'на лечении' || p.status_name === 'обратные билеты с лечения'
+        );
+        break;
+        
+      case 'departure':
+        // Только "обратные билеты с лечения"
+        filteredPatients = patients.filter(p => 
+          p.status_name === 'обратные билеты с лечения'
+        );
+        break;
+        
+      case 'basic':
+      case 'visa':
+      case 'personal':
+        // Показываем всех (без фильтрации)
+        break;
+        
+      default:
+        break;
+    }
+    
+
+    
+
+    
+    const sortedPatients = getSortedPatientsForFieldGroup(filteredPatients, currentFieldGroup);
+    
+
+    
+    return sortedPatients;
+  }, [patients, visibleFieldGroups]);
 
   if (!profile) {
     return (
@@ -84,26 +133,64 @@ export function PatientsTable() {
       />
 
       {/* Field Group Toggles */}
-      <div className="flex flex-wrap gap-2">
-        {[
-          { key: 'basic', label: 'Основное', enabled: true },
-          { key: 'arrival', label: 'Прибытие', enabled: true },
-          { key: 'departure', label: 'Отъезд', enabled: true },
-          { key: 'visa', label: 'Виза', enabled: true },
-          { key: 'personal', label: 'Личные данные', enabled: profile.role === 'super_admin' }
-        ].filter(group => group.enabled).map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => handleFieldGroupToggle(key as FieldGroup)}
-            className={`px-3 py-1 text-sm rounded-md transition-colors ${
-              visibleFieldGroups.includes(key as FieldGroup)
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          {[
+            { 
+              key: 'basic', 
+              label: 'ВСЕ', 
+              count: patients.length,
+              enabled: true 
+            },
+            { 
+              key: 'arrival', 
+              label: 'Прибытие', 
+              count: patients.filter(p => p.status_name === 'Билеты куплены' || p.status_name === 'квартира заказана').length,
+              enabled: true 
+            },
+            { 
+              key: 'treatment', 
+              label: 'На лечении', 
+              count: patients.filter(p => p.status_name === 'на лечении' || p.status_name === 'обратные билеты с лечения').length,
+              enabled: true 
+            },
+            { 
+              key: 'departure', 
+              label: 'Обратные билеты', 
+              count: patients.filter(p => p.status_name === 'обратные билеты с лечения').length,
+              enabled: true 
+            },
+            { 
+              key: 'visa', 
+              label: 'Виза', 
+              count: 0,
+              enabled: true 
+            },
+            { 
+              key: 'personal', 
+              label: 'Личные данные', 
+              count: 0,
+              enabled: profile.role === 'super_admin' 
+            }
+          ].filter(group => group.enabled).map(({ key, label, count }) => (
+            <button
+              key={key}
+              onClick={() => handleFieldGroupToggle(key as FieldGroup)}
+              className={`px-3 py-2 text-sm rounded-md transition-colors flex flex-col items-center gap-1 ${
+                visibleFieldGroups.includes(key as FieldGroup)
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              <span>{label}</span>
+              {count > 0 && (
+                <span className="text-xs bg-background/20 px-1.5 py-0.5 rounded">
+                  {count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Content */}
@@ -129,14 +216,14 @@ export function PatientsTable() {
         <>
           {isMobile ? (
             <PatientCardsMobile 
-              patients={patients}
+              patients={sortedPatients}
               visibleFieldGroups={visibleFieldGroups}
               onPatientUpdate={updatePatient}
               userRole={profile.role}
             />
           ) : (
             <PatientTableDesktop 
-              patients={patients}
+              patients={sortedPatients}
               visibleFieldGroups={visibleFieldGroups}
               onPatientUpdate={updatePatient}
               userRole={profile.role}
@@ -144,7 +231,7 @@ export function PatientsTable() {
           )}
           
           <div className="text-center text-sm text-muted-foreground">
-            Найдено пациентов: {patients.length}
+            Найдено пациентов: {sortedPatients.length}
           </div>
         </>
       )}

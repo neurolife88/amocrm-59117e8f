@@ -43,14 +43,17 @@ export function PatientTableDesktop({
     try {
       const updates: Partial<PatientData> = {};
       
-      if (field === 'apartment_number') {
-        updates.apartment_number = editValue;
-      } else if (field === 'departure_city') {
-        updates.departure_city = editValue;
-      } else if (field === 'departure_datetime') {
-        updates.departure_datetime = editValue;
-      } else if (field === 'departure_flight_number') {
-        updates.departure_flight_number = editValue;
+      // Map field names to PatientData properties
+      const fieldMapping: Record<string, keyof PatientData> = {
+        'apartment_number': 'apartment_number',
+        'departure_city': 'departure_city',
+        'departure_datetime': 'departure_datetime',
+        'departure_flight_number': 'departure_flight_number'
+      };
+      
+      const propertyName = fieldMapping[field];
+      if (propertyName) {
+        (updates as any)[propertyName] = editValue;
       }
 
       await onPatientUpdate(dealId, updates);
@@ -78,7 +81,14 @@ export function PatientTableDesktop({
   };
 
   const canEdit = (field: string) => {
-    return userRole === 'coordinator' && ['apartment_number', 'departure_city', 'departure_datetime', 'departure_flight_number'].includes(field);
+    const editableFields = [
+      'apartment_number',
+      'departure_city', 
+      'departure_datetime',
+      'departure_flight_number'
+    ];
+    
+    return (userRole === 'coordinator' || userRole === 'super_admin') && editableFields.includes(field);
   };
 
   const renderEditableCell = (patient: PatientData, field: string, value: string | null, formatValue?: (val: string | null) => string) => {
@@ -92,6 +102,13 @@ export function PatientTableDesktop({
             <Input
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  saveEdit(patient.deal_id, field);
+                } else if (e.key === 'Escape') {
+                  cancelEdit();
+                }
+              }}
               className="h-8 text-sm"
               autoFocus
             />
@@ -99,17 +116,17 @@ export function PatientTableDesktop({
               size="sm"
               variant="ghost"
               onClick={() => saveEdit(patient.deal_id, field)}
-              className="h-8 w-8 p-0"
+              className="h-6 w-6 p-0"
             >
-              <Check className="h-4 w-4" />
+              <Check className="h-3 w-3" />
             </Button>
             <Button
               size="sm"
               variant="ghost"
               onClick={cancelEdit}
-              className="h-8 w-8 p-0"
+              className="h-6 w-6 p-0"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3 w-3" />
             </Button>
           </div>
         </TableCell>
@@ -117,18 +134,15 @@ export function PatientTableDesktop({
     }
 
     return (
-      <TableCell>
-        <div className="flex items-center justify-between group">
+      <TableCell
+        className={canEdit(field) ? 'cursor-pointer hover:bg-muted/50 group' : ''}
+        onClick={() => canEdit(field) && startEditing(patient.deal_id, field, rawValue)}
+        title={canEdit(field) ? 'Клик для редактирования' : ''}
+      >
+        <div className="flex items-center gap-2">
           <span>{displayValue}</span>
           {canEdit(field) && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => startEditing(patient.deal_id, field, rawValue)}
-              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <Edit2 className="h-3 w-3" />
-            </Button>
+            <Edit2 className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
           )}
         </div>
       </TableCell>
@@ -147,80 +161,77 @@ export function PatientTableDesktop({
   const getStatusBadge = (status: string | null) => {
     if (!status) return null;
     
-    const variants = {
-      'Arriving': 'default',
-      'In Treatment': 'secondary',
-      'Departed': 'outline',
-      'Unknown': 'destructive'
-    } as const;
-
-    const labels = {
-      'Arriving': 'Прибывает',
-      'In Treatment': 'На лечении',
-      'Departed': 'Отбыл',
-      'Unknown': 'Неизвестно'
+    const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
+      'Билеты куплены': { variant: 'default', label: 'Билеты куплены' },
+      'на лечении': { variant: 'secondary', label: 'На лечении' },
+      'квартира заказана': { variant: 'outline', label: 'Квартира заказана' },
+      'обратные билеты с лечения': { variant: 'destructive', label: 'Обратные билеты' }
     };
 
+    const config = statusConfig[status] || { variant: 'outline' as const, label: status };
+    
     return (
-      <Badge variant={variants[status as keyof typeof variants] || 'outline'}>
-        {labels[status as keyof typeof labels] || status}
+      <Badge variant={config.variant} className="text-xs">
+        {config.label}
       </Badge>
     );
   };
 
   const getVisaBadge = (visaStatus: string | null, daysUntilExpires: number | null) => {
-    if (!visaStatus) return null;
-
-    const variants = {
-      'Active': 'default',
-      'Expiring Soon': 'destructive',
-      'Expired': 'destructive'
-    } as const;
-
-    const labels = {
-      'Active': 'Активна',
-      'Expiring Soon': 'Истекает',
-      'Expired': 'Истекла'
+    if (visaStatus === null) return '-';
+    
+    const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
+      'Active': { variant: 'default', label: 'Активна' },
+      'Expiring Soon': { variant: 'secondary', label: 'Истекает скоро' },
+      'Expired': { variant: 'destructive', label: 'Истекла' }
     };
 
+    const config = statusConfig[visaStatus] || { variant: 'outline' as const, label: visaStatus };
+    
     return (
-      <div className="space-y-1">
-        <Badge variant={variants[visaStatus as keyof typeof variants] || 'outline'}>
-          {labels[visaStatus as keyof typeof labels] || visaStatus}
-        </Badge>
-        {daysUntilExpires !== null && (
-          <div className="text-xs text-muted-foreground">
-            {daysUntilExpires > 0 
-              ? `${daysUntilExpires} дней` 
-              : daysUntilExpires === 0 
-                ? 'Истекает сегодня' 
-                : `Просрочено на ${Math.abs(daysUntilExpires)} дней`}
-          </div>
-        )}
-      </div>
+      <Badge variant={config.variant} className="text-xs">
+        {config.label} {daysUntilExpires !== null ? `(${daysUntilExpires} дн.)` : ''}
+      </Badge>
     );
   };
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
+    <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
+            {/* Пациент всегда отображается */}
+            <TableHead>Пациент</TableHead>
+            
             {/* Basic fields */}
             {visibleFieldGroups.includes('basic') && (
               <>
-                <TableHead>Пациент</TableHead>
+                <TableHead>Страна</TableHead>
                 <TableHead>Клиника</TableHead>
-                <TableHead>Статус</TableHead>
+                <TableHead>Статус сделки</TableHead>
+                <TableHead>Дата и время прибытия</TableHead>
+                <TableHead>Транспорт</TableHead>
+                <TableHead>Рейс</TableHead>
+                <TableHead>Квартира</TableHead>
+                <TableHead>Тип визы</TableHead>
+                <TableHead>Количество дней в визе</TableHead>
+                <TableHead>Истекает</TableHead>
+                <TableHead>Паспорт номер</TableHead>
+                <TableHead>Город</TableHead>
               </>
             )}
             
             {/* Arrival fields */}
             {visibleFieldGroups.includes('arrival') && (
               <>
-                <TableHead>Прибытие</TableHead>
+                <TableHead>Страна</TableHead>
+                <TableHead>Клиника</TableHead>
+                <TableHead>Статус сделки</TableHead>
+                <TableHead>Дата и время прибытия</TableHead>
                 <TableHead>Транспорт</TableHead>
                 <TableHead>Рейс</TableHead>
+                <TableHead>Терминал</TableHead>
+                <TableHead>Количество пассажиров</TableHead>
                 <TableHead>Квартира</TableHead>
               </>
             )}
@@ -228,16 +239,37 @@ export function PatientTableDesktop({
             {/* Departure fields */}
             {visibleFieldGroups.includes('departure') && (
               <>
-                <TableHead>Отъезд</TableHead>
-                <TableHead>Город отъезда</TableHead>
-                <TableHead>Рейс отъезда</TableHead>
+                <TableHead>Страна</TableHead>
+                <TableHead>Клиника</TableHead>
+                <TableHead>Статус сделки</TableHead>
+                <TableHead>Дата и время прибытия</TableHead>
+                <TableHead>Дата и время убытия</TableHead>
+                <TableHead>Город убытия</TableHead>
+                <TableHead>Номер рейса</TableHead>
               </>
             )}
-            
+             
+            {/* Treatment fields */}
+            {visibleFieldGroups.includes('treatment') && (
+              <>
+                <TableHead>Страна</TableHead>
+                <TableHead>Номер квартиры</TableHead>
+                <TableHead>Клиника</TableHead>
+                <TableHead>Статус сделки</TableHead>
+                <TableHead>Дата прибытия</TableHead>
+                <TableHead>Дата убытия</TableHead>
+                <TableHead>Виза истекает</TableHead>
+              </>
+            )}
+             
             {/* Visa fields */}
             {visibleFieldGroups.includes('visa') && (
               <>
-                <TableHead>Виза</TableHead>
+                <TableHead>Страна</TableHead>
+                <TableHead>Клиника</TableHead>
+                <TableHead>Статус сделки</TableHead>
+                <TableHead>Тип визы</TableHead>
+                <TableHead>Количество дней в визе</TableHead>
                 <TableHead>Истекает</TableHead>
               </>
             )}
@@ -245,51 +277,99 @@ export function PatientTableDesktop({
             {/* Personal fields (super admin only) */}
             {visibleFieldGroups.includes('personal') && userRole === 'super_admin' && (
               <>
+                <TableHead>Клиника</TableHead>
+                <TableHead>Страна</TableHead>
+                <TableHead>Город</TableHead>
+                <TableHead>Дата рождения</TableHead>
+                <TableHead>Номер паспорта</TableHead>
                 <TableHead>Телефон</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Паспорт</TableHead>
-                <TableHead>Позиция</TableHead>
+                <TableHead>Электронный адрес</TableHead>
+                <TableHead>Должность</TableHead>
               </>
             )}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {patients.map((patient) => (
-            <TableRow key={patient.deal_id}>
+          {patients.map((patient) => {
+
+            return (
+            <TableRow key={`${patient.deal_id}-${patient.patient_full_name}`} className="group">
+              {/* Пациент всегда отображается */}
+              <TableCell className="font-medium">
+                {patient.patient_full_name || '-'}
+              </TableCell>
+              
               {/* Basic fields */}
               {visibleFieldGroups.includes('basic') && (
                 <>
-                  <TableCell className="font-medium">
-                    {patient.patient_full_name || '-'}
-                  </TableCell>
+                  <TableCell>{patient.deal_country || '-'}</TableCell>
                   <TableCell>{patient.clinic_name || '-'}</TableCell>
-                  <TableCell>{getStatusBadge(patient.patient_status)}</TableCell>
+                  <TableCell>{patient.status_name || '-'}</TableCell>
+                  <TableCell>{formatDate(patient.arrival_datetime)}</TableCell>
+                  <TableCell>{patient.arrival_transport_type || '-'}</TableCell>
+                  <TableCell>{patient.arrival_flight_number || '-'}</TableCell>
+                  <TableCell>{patient.apartment_number || '-'}</TableCell>
+                  <TableCell>{patient.visa_type || '-'}</TableCell>
+                  <TableCell>{patient.visa_days || '-'}</TableCell>
+                  <TableCell>
+                    {getVisaBadge(patient.visa_status, patient.days_until_visa_expires)}
+                  </TableCell>
+                  {renderEditableCell(patient, 'patient_passport', patient.patient_passport)}
+                  <TableCell>{patient.patient_city || '-'}</TableCell>
                 </>
               )}
               
               {/* Arrival fields */}
               {visibleFieldGroups.includes('arrival') && (
                 <>
+                  <TableCell>{patient.deal_country || '-'}</TableCell>
+                  <TableCell>{patient.clinic_name || '-'}</TableCell>
+                  <TableCell>{patient.status_name || '-'}</TableCell>
                   <TableCell>{formatDate(patient.arrival_datetime)}</TableCell>
                   <TableCell>{patient.arrival_transport_type || '-'}</TableCell>
                   <TableCell>{patient.arrival_flight_number || '-'}</TableCell>
+                  <TableCell>{patient.arrival_terminal || '-'}</TableCell>
+                  <TableCell>{patient.passengers_count || '-'}</TableCell>
                   {renderEditableCell(patient, 'apartment_number', patient.apartment_number)}
                 </>
               )}
               
-               {/* Departure fields */}
-               {visibleFieldGroups.includes('departure') && (
-                 <>
-                   {renderEditableCell(patient, 'departure_datetime', patient.departure_datetime, formatDate)}
-                   {renderEditableCell(patient, 'departure_city', patient.departure_city)}
-                   {renderEditableCell(patient, 'departure_flight_number', patient.departure_flight_number)}
-                 </>
-               )}
-              
+              {/* Departure fields */}
+              {visibleFieldGroups.includes('departure') && (
+                <>
+                  <TableCell>{patient.deal_country || '-'}</TableCell>
+                  <TableCell>{patient.clinic_name || '-'}</TableCell>
+                  <TableCell>{patient.status_name || '-'}</TableCell>
+                  <TableCell>{formatDate(patient.arrival_datetime)}</TableCell>
+                  {renderEditableCell(patient, 'departure_datetime', patient.departure_datetime)}
+                  {renderEditableCell(patient, 'departure_city', patient.departure_city)}
+                  {renderEditableCell(patient, 'departure_flight_number', patient.departure_flight_number)}
+                </>
+              )}
+                
+              {/* Treatment fields */}
+              {visibleFieldGroups.includes('treatment') && (
+                <>
+                  <TableCell>{patient.deal_country || '-'}</TableCell>
+                  {renderEditableCell(patient, 'apartment_number', patient.apartment_number)}
+                  <TableCell>{patient.clinic_name || '-'}</TableCell>
+                  <TableCell>{patient.status_name || '-'}</TableCell>
+                  <TableCell>{patient.arrival_datetime ? format(parseISO(patient.arrival_datetime), 'dd.MM.yyyy', { locale: ru }) : '-'}</TableCell>
+                  <TableCell>{formatDate(patient.departure_datetime)}</TableCell>
+                  <TableCell>
+                    {getVisaBadge(patient.visa_status, patient.days_until_visa_expires)}
+                  </TableCell>
+                </>
+              )}
+               
               {/* Visa fields */}
               {visibleFieldGroups.includes('visa') && (
                 <>
+                  <TableCell>{patient.deal_country || '-'}</TableCell>
+                  <TableCell>{patient.clinic_name || '-'}</TableCell>
+                  <TableCell>{patient.status_name || '-'}</TableCell>
                   <TableCell>{patient.visa_type || '-'}</TableCell>
+                  <TableCell>{patient.visa_days || '-'}</TableCell>
                   <TableCell>
                     {getVisaBadge(patient.visa_status, patient.days_until_visa_expires)}
                   </TableCell>
@@ -299,14 +379,19 @@ export function PatientTableDesktop({
               {/* Personal fields (super admin only) */}
               {visibleFieldGroups.includes('personal') && userRole === 'super_admin' && (
                 <>
+                  <TableCell>{patient.clinic_name || '-'}</TableCell>
+                  <TableCell>{patient.patient_country || '-'}</TableCell>
+                  <TableCell>{patient.patient_city || '-'}</TableCell>
+                  <TableCell>{patient.patient_birthday ? format(parseISO(patient.patient_birthday), 'dd.MM.yyyy', { locale: ru }) : '-'}</TableCell>
+                  <TableCell>{patient.patient_passport || '-'}</TableCell>
                   <TableCell>{patient.patient_phone || '-'}</TableCell>
                   <TableCell>{patient.patient_email || '-'}</TableCell>
-                  <TableCell>{patient.patient_passport || '-'}</TableCell>
                   <TableCell>{patient.patient_position || '-'}</TableCell>
                 </>
               )}
             </TableRow>
-          ))}
+          );
+          })}
         </TableBody>
       </Table>
     </div>

@@ -187,7 +187,6 @@ export function PatientCardsMobile({
                 <User className="h-4 w-4" />
                 <span>{patient.patient_full_name || 'Без имени'}</span>
               </CardTitle>
-              {getStatusBadge(patient.patient_status)}
             </div>
             <div className="text-sm text-muted-foreground">
               {patient.clinic_name || 'Клиника не указана'}
@@ -228,38 +227,64 @@ export function PatientCardsMobile({
               </Collapsible>
             )}
 
-            {/* Departure Section */}
-            {visibleFieldGroups.includes('departure') && (
-              <div className="p-2 rounded bg-orange-50 dark:bg-orange-950/20 space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Plane className="h-4 w-4 text-orange-600 rotate-45" />
-                  <span className="font-medium text-sm">Отъезд</span>
-                </div>
-                 <div className="grid grid-cols-1 gap-2 text-sm">
-                   {renderEditableField(patient, 'departure_datetime', patient.departure_datetime, 'Дата', formatDate)}
-                   {renderEditableField(patient, 'departure_city', patient.departure_city, 'Город')}
-                   {renderEditableField(patient, 'departure_flight_number', patient.departure_flight_number, 'Рейс')}
+                         {/* Departure Section */}
+             {visibleFieldGroups.includes('departure') && (
+               <div className="p-2 rounded bg-orange-50 dark:bg-orange-950/20 space-y-2">
+                 <div className="flex items-center space-x-2">
+                   <Plane className="h-4 w-4 text-orange-600 rotate-45" />
+                   <span className="font-medium text-sm">Обратные билеты</span>
                  </div>
-              </div>
-            )}
+                  <div className="grid grid-cols-1 gap-2 text-sm">
+                    {renderEditableField(patient, 'departure_datetime', patient.departure_datetime, 'Дата', formatDate)}
+                    {renderEditableField(patient, 'departure_city', patient.departure_city, 'Город')}
+                    {renderEditableField(patient, 'departure_flight_number', patient.departure_flight_number, 'Рейс')}
+                  </div>
+               </div>
+             )}
 
-            {/* Visa Section */}
-            {visibleFieldGroups.includes('visa') && (
+             {/* Treatment Section */}
+             {visibleFieldGroups.includes('treatment') && (
+               <div className="p-2 rounded bg-blue-50 dark:bg-blue-950/20 space-y-2">
+                 <div className="flex items-center space-x-2">
+                   <User className="h-4 w-4 text-blue-600" />
+                   <span className="font-medium text-sm">Лечение</span>
+                 </div>
+                 <div className="grid grid-cols-1 gap-2 text-sm">
+                   <div>
+                     <span className="text-muted-foreground">Статус:</span>
+                     <div>{patient.status_name || '-'}</div>
+                   </div>
+                   <div>
+                     <span className="text-muted-foreground">Клиника:</span>
+                     <div>{patient.clinic_name || '-'}</div>
+                   </div>
+                   <div>
+                     <span className="text-muted-foreground">Дата начала:</span>
+                     <div>{formatDate(patient.arrival_datetime)}</div>
+                   </div>
+                 </div>
+               </div>
+             )}
+
+             {/* Visa Section */}
+             {visibleFieldGroups.includes('visa') && (
               <div className="p-2 rounded bg-green-50 dark:bg-green-950/20 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <FileText className="h-4 w-4 text-green-600" />
                     <span className="font-medium text-sm">Виза</span>
                   </div>
-                  {patient.visa_status && (
-                    <Badge 
-                      variant={patient.visa_status === 'Active' ? 'default' : 'destructive'} 
-                      className="text-xs"
-                    >
-                      {patient.visa_status === 'Active' ? 'Активна' : 
-                       patient.visa_status === 'Expiring Soon' ? 'Истекает' : 'Истекла'}
-                    </Badge>
-                  )}
+                                  {patient.visa_status ? (
+                  <Badge 
+                    variant={patient.visa_status === 'Active' ? 'default' : 'destructive'}
+                    className="text-xs"
+                  >
+                    {patient.visa_status === 'Active' ? 'Активна' :
+                     patient.visa_status === 'Expiring Soon' ? 'Истекает' : 'Истекла'}
+                  </Badge>
+                ) : (
+                  <span className="text-muted-foreground text-xs">-</span>
+                )}
                 </div>
                 <div className="text-sm">
                   <span className="text-muted-foreground">Тип:</span> {patient.visa_type || '-'}

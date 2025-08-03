@@ -1,0 +1,36 @@
+
+---
+alwaysApply: true
+---
+# Project Specific Rules - Medical Tourism System
+
+## Project Context
+- Medical tourism management system for China
+- AmoCRM integration for lead management
+- Multi-role system (super_admin, director, coordinator)
+- Patient and companion data management
+- Visa and ticket tracking
+
+## Database Schema
+- user_profiles: User management with roles
+- deals: AmoCRM leads and deals
+- contacts: Patient and companion information
+- clinics_directory: Medical facilities
+- visas: Visa information and tracking
+- tickets_to_china: Arrival tickets
+- tickets_from_treatment: Departure tickets
+
+## UI/UX Guidelines
+- Responsive design for mobile and desktop
+- Role-based interfaces
+- Modern design with shadcn/ui components
+- Intuitive navigation and forms
+- Proper data visualization in tables
+
+## Current Tasks
+- Add patient_position field to master view
+- Improve data viewing interface
+- Add filtering and sorting capabilities
+- Implement data editing functionality
+- Add data export features
+- Enhance mobile version

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Calendar, AlertTriangle, Building, Hospital } from 'lucide-react';
+import { Search, Building, Hospital } from 'lucide-react';
 import { PatientFilters } from '@/types/patient';
 import { useAuth } from '@/hooks/useAuth';
 import { useClinics } from '@/hooks/useClinics';
@@ -23,31 +23,12 @@ export function FilterPanel({ onFilterChange, currentFilters }: FilterPanelProps
     onFilterChange({ ...currentFilters, search: value });
   };
 
-  const handleDateRangeChange = (dateRange: PatientFilters['dateRange']) => {
-    onFilterChange({ ...currentFilters, dateRange });
-  };
 
-  const handleStatusChange = (status: PatientFilters['status']) => {
-    onFilterChange({ ...currentFilters, status });
-  };
 
-  const handleUrgentVisasToggle = () => {
-    onFilterChange({ ...currentFilters, urgentVisas: !currentFilters.urgentVisas });
-  };
+  // handleStatusChange удалена - теперь используется только status_name из AmoCRM
 
   const handleClinicChange = (clinic: string) => {
     onFilterChange({ ...currentFilters, clinic: clinic === 'all' ? undefined : clinic });
-  };
-
-  const resetFilters = () => {
-    const resetFilters: PatientFilters = {
-      dateRange: 'all',
-      status: 'all',
-      search: '',
-      urgentVisas: false
-    };
-    setSearchTerm('');
-    onFilterChange(resetFilters);
   };
 
   return (
@@ -63,70 +44,9 @@ export function FilterPanel({ onFilterChange, currentFilters }: FilterPanelProps
         />
       </div>
 
-      {/* Date Range Filters */}
-      <div className="space-y-2">
-        <div className="flex items-center space-x-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Период:</span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {[
-            { key: 'today', label: 'Сегодня' },
-            { key: 'tomorrow', label: 'Завтра' },
-            { key: 'week', label: 'Неделя' },
-            { key: 'all', label: 'Все' }
-          ].map(({ key, label }) => (
-            <Button
-              key={key}
-              variant={currentFilters.dateRange === key ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => handleDateRangeChange(key as PatientFilters['dateRange'])}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-      </div>
 
-      {/* Status Filters */}
-      <div className="space-y-2">
-        <div className="flex items-center space-x-2">
-          <Building className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Статус:</span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {[
-            { key: 'all', label: 'Все' },
-            { key: 'arriving', label: 'Прибывают' },
-            { key: 'in_treatment', label: 'На лечении' },
-            { key: 'departing', label: 'Отбывают' }
-          ].map(({ key, label }) => (
-            <Button
-              key={key}
-              variant={currentFilters.status === key ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => handleStatusChange(key as PatientFilters['status'])}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-      </div>
 
-      {/* Urgent Visas Filter */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <AlertTriangle className="h-4 w-4 text-destructive" />
-          <span className="text-sm font-medium">Срочные визы</span>
-        </div>
-        <Button
-          variant={currentFilters.urgentVisas ? 'default' : 'outline'}
-          size="sm"
-          onClick={handleUrgentVisasToggle}
-        >
-          {currentFilters.urgentVisas ? 'Включено' : 'Выключено'}
-        </Button>
-      </div>
+      {/* Status Filters удалены - теперь используется только status_name из AmoCRM */}
 
       {/* Clinic Filter (Super Admin only) */}
       {profile?.role === 'super_admin' && (
@@ -154,12 +74,6 @@ export function FilterPanel({ onFilterChange, currentFilters }: FilterPanelProps
         </div>
       )}
 
-      {/* Reset Button */}
-      <div className="pt-2 border-t border-border">
-        <Button variant="ghost" size="sm" onClick={resetFilters} className="w-full">
-          Сбросить фильтры
-        </Button>
-      </div>
     </div>
   );
 }

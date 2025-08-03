@@ -1,0 +1,20 @@
+---
+alwaysApply: true
+---
+# TailwindCSS Rules
+
+## Utility Classes
+- Use semantic class combinations
+- Prefer responsive design utilities
+- Use custom CSS variables for theming
+- Implement consistent spacing scales
+- Use proper color palette management
+- Optimize for mobile-first design
+
+## Component Patterns
+- Create reusable component classes
+- Use @apply for complex styles
+- Implement proper dark mode support
+- Use proper typography scales
+- Maintain consistent border radius
+- Implement proper focus states
