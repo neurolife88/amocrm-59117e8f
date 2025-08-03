@@ -41,6 +41,8 @@ export function PatientTableDesktop({
 
   const saveEdit = async (dealId: number, field: string) => {
     try {
+      console.log('Saving edit:', { dealId, field, editValue });
+      
       const updates: Partial<PatientData> = {};
       
       // Map field names to PatientData properties
@@ -54,18 +56,25 @@ export function PatientTableDesktop({
       const propertyName = fieldMapping[field];
       if (propertyName) {
         (updates as any)[propertyName] = editValue;
+        console.log('Mapped field:', { field, propertyName, value: editValue });
+      } else {
+        console.error('Unknown field:', field);
+        throw new Error(`Неизвестное поле: ${field}`);
       }
 
+      console.log('Calling onPatientUpdate with:', { dealId, updates });
       await onPatientUpdate(dealId, updates);
+      
       setEditingField(null);
       toast({
         title: "Успешно обновлено",
         description: "Данные пациента обновлены",
       });
     } catch (error) {
+      console.error('Error in saveEdit:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось обновить данные",
+        description: error instanceof Error ? error.message : "Не удалось обновить данные",
         variant: "destructive",
       });
     }

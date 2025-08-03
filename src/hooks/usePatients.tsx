@@ -132,20 +132,69 @@ export function usePatients() {
       setLoading(true);
       setError(null);
 
-      // Обновляем только поля из таблицы deals
-      const { error } = await supabase
-        .from('deals')
-        .update(updates)
-        .eq('id', dealId);
+      // Разделяем поля по таблицам
+      const { apartment_number, departure_city, departure_datetime, departure_flight_number, ...otherFields } = updates;
+      
+      let hasUpdates = false;
 
-      if (error) {
-        throw error;
+      // Обновляем apartment_number в tickets_to_china
+      if (apartment_number !== undefined) {
+        const { error: arrivalError } = await supabase
+          .from('tickets_to_china')
+          .update({ apartment_number })
+          .eq('deal_id', dealId);
+        
+        if (arrivalError) {
+          console.error('Error updating tickets_to_china:', arrivalError);
+          throw arrivalError;
+        }
+        hasUpdates = true;
+      }
+
+      // Обновляем поля отъезда в tickets_from_treatment
+      const departureUpdates: any = {};
+      if (departure_city !== undefined) departureUpdates.departure_city = departure_city;
+      if (departure_datetime !== undefined) departureUpdates.departure_datetime = departure_datetime;
+      if (departure_flight_number !== undefined) departureUpdates.departure_flight_number = departure_flight_number;
+
+      if (Object.keys(departureUpdates).length > 0) {
+        const { error: departureError } = await supabase
+          .from('tickets_from_treatment')
+          .update(departureUpdates)
+          .eq('deal_id', dealId);
+        
+        if (departureError) {
+          console.error('Error updating tickets_from_treatment:', departureError);
+          throw departureError;
+        }
+        hasUpdates = true;
+      }
+
+      // Обновляем остальные поля в deals (если есть)
+      if (Object.keys(otherFields).length > 0) {
+        const { error: dealsError } = await supabase
+          .from('deals')
+          .update(otherFields)
+          .eq('id', dealId);
+        
+        if (dealsError) {
+          console.error('Error updating deals:', dealsError);
+          throw dealsError;
+        }
+        hasUpdates = true;
+      }
+
+      if (!hasUpdates) {
+        console.warn('No fields to update');
+        return;
       }
 
       // Refresh the data
       await loadPatients({ search: '' });
     } catch (err) {
+      console.error('Error in updatePatient:', err);
       setError(err instanceof Error ? err.message : 'Ошибка обновления данных');
+      throw err; // Re-throw to let component handle it
     } finally {
       setLoading(false);
     }
