@@ -75,6 +75,6 @@ export interface SortConfig {
   direction: 'asc' | 'desc';
 }
 
-export interface FieldGroupSortConfig {
+export type FieldGroupSortConfig = {
   [key in FieldGroup]: SortConfig;
 }
