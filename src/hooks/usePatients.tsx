@@ -47,6 +47,20 @@ export function usePatients() {
         );
       }
 
+      // Фильтр по коду аэропорта
+      if (filters.departure_airport_code) {
+        filteredData = filteredData.filter((patient: any) => 
+          patient.departure_airport_code?.toLowerCase().includes(filters.departure_airport_code!.toLowerCase())
+        );
+      }
+
+      // Фильтр по городу прибытия
+      if (filters.arrival_city) {
+        filteredData = filteredData.filter((patient: any) => 
+          patient.arrival_city?.toLowerCase().includes(filters.arrival_city!.toLowerCase())
+        );
+      }
+
 
 
 

@@ -232,6 +232,8 @@ export function PatientTableDesktop({
                 <TableHead>Статус сделки</TableHead>
                 <TableHead>Дата и время прибытия</TableHead>
                 <TableHead>Транспорт</TableHead>
+                <TableHead>Код аэропорта</TableHead>
+                <TableHead>Город прибытия</TableHead>
                 <TableHead>Рейс</TableHead>
                 <TableHead>Терминал</TableHead>
                 <TableHead>Количество пассажиров</TableHead>
@@ -330,6 +332,8 @@ export function PatientTableDesktop({
                   <TableCell>{patient.status_name || '-'}</TableCell>
                   <TableCell>{formatDate(patient.arrival_datetime)}</TableCell>
                   <TableCell>{patient.arrival_transport_type || '-'}</TableCell>
+                  <TableCell>{patient.departure_airport_code || '-'}</TableCell>
+                  <TableCell>{patient.arrival_city || '-'}</TableCell>
                   <TableCell>{patient.arrival_flight_number || '-'}</TableCell>
                   <TableCell>{patient.arrival_terminal || '-'}</TableCell>
                   <TableCell>{patient.passengers_count || '-'}</TableCell>

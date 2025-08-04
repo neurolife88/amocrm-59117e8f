@@ -65,6 +65,8 @@ export interface PatientFilters {
   // status удален - теперь используется только status_name из AmoCRM
   clinic?: string;
   search?: string;
+  departure_airport_code?: string;
+  arrival_city?: string;
 }
 
 export type FieldGroup = 'basic' | 'arrival' | 'departure' | 'treatment' | 'visa' | 'personal';

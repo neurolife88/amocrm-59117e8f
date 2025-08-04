@@ -218,7 +218,23 @@ export function PatientCardsMobile({
                 <CollapsibleContent className="pt-2 space-y-2 text-sm">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <span className="text-muted-foreground">Дата:</span>
+                      <span className="text-muted-foreground">Пациент:</span>
+                      <div>{patient.patient_full_name || '-'}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Страна:</span>
+                      <div>{patient.deal_country || '-'}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Клиника:</span>
+                      <div>{patient.clinic_name || '-'}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Статус сделки:</span>
+                      <div>{patient.status_name || '-'}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Дата и время прибытия:</span>
                       <div>{formatDate(patient.arrival_datetime)}</div>
                     </div>
                     <div>
@@ -226,10 +242,26 @@ export function PatientCardsMobile({
                       <div>{patient.arrival_transport_type || '-'}</div>
                     </div>
                     <div>
+                      <span className="text-muted-foreground">Код аэропорта:</span>
+                      <div>{patient.departure_airport_code || '-'}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Город прибытия:</span>
+                      <div>{patient.arrival_city || '-'}</div>
+                    </div>
+                    <div>
                       <span className="text-muted-foreground">Рейс:</span>
                       <div>{patient.arrival_flight_number || '-'}</div>
                     </div>
-                     {renderEditableField(patient, 'apartment_number', patient.apartment_number, 'Квартира')}
+                    <div>
+                      <span className="text-muted-foreground">Терминал:</span>
+                      <div>{patient.arrival_terminal || '-'}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Количество пассажиров:</span>
+                      <div>{patient.passengers_count || '-'}</div>
+                    </div>
+                    {renderEditableField(patient, 'apartment_number', patient.apartment_number, 'Квартира')}
                   </div>
                 </CollapsibleContent>
               </Collapsible>

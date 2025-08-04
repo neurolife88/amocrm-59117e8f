@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Building, Hospital } from 'lucide-react';
+import { Search, Building, Hospital, Plane, MapPin } from 'lucide-react';
 import { PatientFilters } from '@/types/patient';
 import { useAuth } from '@/hooks/useAuth';
 import { useClinics } from '@/hooks/useClinics';
@@ -29,6 +29,14 @@ export function FilterPanel({ onFilterChange, currentFilters }: FilterPanelProps
 
   const handleClinicChange = (clinic: string) => {
     onFilterChange({ ...currentFilters, clinic: clinic === 'all' ? undefined : clinic });
+  };
+
+  const handleAirportCodeChange = (value: string) => {
+    onFilterChange({ ...currentFilters, departure_airport_code: value || undefined });
+  };
+
+  const handleArrivalCityChange = (value: string) => {
+    onFilterChange({ ...currentFilters, arrival_city: value || undefined });
   };
 
   return (
@@ -73,6 +81,34 @@ export function FilterPanel({ onFilterChange, currentFilters }: FilterPanelProps
           </Select>
         </div>
       )}
+
+      {/* Airport Code Filter */}
+      <div className="space-y-2">
+        <div className="flex items-center space-x-2">
+          <Plane className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Код аэропорта:</span>
+        </div>
+        <Input
+          placeholder="Введите код аэропорта..."
+          value={currentFilters.departure_airport_code || ''}
+          onChange={(e) => handleAirportCodeChange(e.target.value)}
+          className="bg-background"
+        />
+      </div>
+
+      {/* Arrival City Filter */}
+      <div className="space-y-2">
+        <div className="flex items-center space-x-2">
+          <MapPin className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Город прибытия:</span>
+        </div>
+        <Input
+          placeholder="Введите город прибытия..."
+          value={currentFilters.arrival_city || ''}
+          onChange={(e) => handleArrivalCityChange(e.target.value)}
+          className="bg-background"
+        />
+      </div>
 
     </div>
   );
