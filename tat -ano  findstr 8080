@@ -1,0 +1,5 @@
+[33me6bf9e8[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix security vulnerabilities
+[33m6fc1c1d[m Run SQL security fixes
+[33mffd4391[m Run SQL migration
+[33m176d886[m Fix: City of departure not saving
+[33mce0a6bb[m fix: resolve database update permissions and improve inline editing

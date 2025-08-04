@@ -41,8 +41,6 @@ export function PatientTableDesktop({
 
   const saveEdit = async (dealId: number, field: string) => {
     try {
-      console.log('Saving edit:', { dealId, field, editValue });
-      
       const updates: Partial<PatientData> = {};
       
       // Map field names to PatientData properties
@@ -56,25 +54,21 @@ export function PatientTableDesktop({
       const propertyName = fieldMapping[field];
       if (propertyName) {
         (updates as any)[propertyName] = editValue;
-        console.log('Mapped field:', { field, propertyName, value: editValue });
-      } else {
-        console.error('Unknown field:', field);
-        throw new Error(`Неизвестное поле: ${field}`);
       }
 
-      console.log('Calling onPatientUpdate with:', { dealId, updates });
+      console.log('Saving edit for dealId:', dealId, 'field:', field, 'value:', editValue);
       await onPatientUpdate(dealId, updates);
-      
       setEditingField(null);
       toast({
         title: "Успешно обновлено",
         description: "Данные пациента обновлены",
       });
     } catch (error) {
-      console.error('Error in saveEdit:', error);
+      console.error('Error saving edit:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
       toast({
-        title: "Ошибка",
-        description: error instanceof Error ? error.message : "Не удалось обновить данные",
+        title: "Ошибка обновления",
+        description: `Не удалось обновить данные: ${errorMessage}`,
         variant: "destructive",
       });
     }
@@ -91,7 +85,7 @@ export function PatientTableDesktop({
 
   const canEdit = (field: string) => {
     const editableFields = [
-      'apartment_number',
+      'apartment_number', // Включаю обратно
       'departure_city', 
       'departure_datetime',
       'departure_flight_number'

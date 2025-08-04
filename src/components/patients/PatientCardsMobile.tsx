@@ -48,6 +48,7 @@ export function PatientCardsMobile({
         updates.departure_flight_number = editValue;
       }
 
+      console.log('Saving mobile edit for dealId:', dealId, 'field:', field, 'value:', editValue);
       await onPatientUpdate(dealId, updates);
       setEditingField(null);
       toast({
@@ -55,9 +56,11 @@ export function PatientCardsMobile({
         description: "Данные пациента обновлены",
       });
     } catch (error) {
+      console.error('Error saving mobile edit:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
       toast({
-        title: "Ошибка",
-        description: "Не удалось обновить данные",
+        title: "Ошибка обновления",
+        description: `Не удалось обновить данные: ${errorMessage}`,
         variant: "destructive",
       });
     }
@@ -73,7 +76,12 @@ export function PatientCardsMobile({
   };
 
   const canEdit = (field: string) => {
-    return userRole === 'coordinator' && ['apartment_number', 'departure_city', 'departure_datetime', 'departure_flight_number'].includes(field);
+    return userRole === 'coordinator' && [
+      'apartment_number', // Включаю обратно
+      'departure_city', 
+      'departure_datetime', 
+      'departure_flight_number'
+    ].includes(field);
   };
 
   const renderEditableField = (patient: PatientData, field: string, value: string | null, label: string, formatValue?: (val: string | null) => string) => {
@@ -262,6 +270,7 @@ export function PatientCardsMobile({
                      <span className="text-muted-foreground">Дата начала:</span>
                      <div>{formatDate(patient.arrival_datetime)}</div>
                    </div>
+                   {renderEditableField(patient, 'apartment_number', patient.apartment_number, 'Квартира')}
                  </div>
                </div>
              )}

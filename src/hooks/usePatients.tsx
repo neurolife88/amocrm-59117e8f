@@ -17,8 +17,6 @@ export function usePatients() {
     setError(null);
     
     try {
-      console.log('Loading patients for profile:', profile);
-      
       // Используем прямое обращение к представлению
       const { data: allData, error: fetchError } = await supabase
         .from('super_admin_master_view')
@@ -29,9 +27,6 @@ export function usePatients() {
         throw new Error(`Ошибка загрузки данных: ${fetchError.message}`);
       }
 
-      console.log('View query successful, data count:', allData?.length);
-      console.log('Sample data from filtered view:', allData?.slice(0, 2));
-      
       let filteredData = allData || [];
       
       // Apply client-side filters (только дополнительные фильтры)
@@ -63,17 +58,11 @@ export function usePatients() {
         return dateA - dateB;
       });
       
-      // Log raw data for debugging
-      console.log('Raw data from filtered view:', allData?.slice(0, 3));
-      console.log('Filtered data sample:', filteredData?.slice(0, 3));
-      
-
-      
       // Transform the data to match PatientData type
       const transformedData: PatientData[] = filteredData.map((row: any) => ({
         deal_id: row.deal_id || 0,
         lead_id: row.lead_id,
-        deal_name: row.deal_name,
+        deal_name: row.deal_name || '',
         patient_full_name: row.patient_full_name || '',
         clinic_name: row.clinic_name || '',
         // patient_status удален - теперь используется только status_name из AmoCRM
@@ -127,76 +116,83 @@ export function usePatients() {
     }
   }, [profile]);
 
-  const updatePatient = async (dealId: number, updates: Partial<PatientData>) => {
+  const updatePatient = async (dealId: number, updates: any) => {
     try {
-      setLoading(true);
-      setError(null);
-
-      // Разделяем поля по таблицам
-      const { apartment_number, departure_city, departure_datetime, departure_flight_number, ...otherFields } = updates;
+      console.log('Starting update for dealId:', dealId, 'with updates:', updates);
       
-      let hasUpdates = false;
+      // Разделяем поля по таблицам
+      const dealsFields = [
+        'deal_name', 'pipeline_name', 'status_name', 'deal_country', 'visa_city'
+      ];
+      const ticketsFields = [
+        'apartment_number', 'departure_city', 'departure_datetime', 'departure_flight_number',
+        'arrival_datetime', 'arrival_city', 'arrival_flight_number', 'arrival_transport_type',
+        'departure_transport_type', 'passengers_count'
+      ];
 
-      // Обновляем apartment_number в tickets_to_china
-      if (apartment_number !== undefined) {
-        const { error: arrivalError } = await supabase
-          .from('tickets_to_china')
-          .update({ apartment_number })
-          .eq('deal_id', dealId);
-        
-        if (arrivalError) {
-          console.error('Error updating tickets_to_china:', arrivalError);
-          throw arrivalError;
+      const dealsUpdates: any = {};
+      const ticketsUpdates: any = {};
+
+      Object.keys(updates).forEach(key => {
+        if (dealsFields.includes(key)) {
+          dealsUpdates[key] = (updates as any)[key];
+        } else if (ticketsFields.includes(key)) {
+          ticketsUpdates[key] = (updates as any)[key];
         }
-        hasUpdates = true;
-      }
+      });
 
-      // Обновляем поля отъезда в tickets_from_treatment
-      const departureUpdates: any = {};
-      if (departure_city !== undefined) departureUpdates.departure_city = departure_city;
-      if (departure_datetime !== undefined) departureUpdates.departure_datetime = departure_datetime;
-      if (departure_flight_number !== undefined) departureUpdates.departure_flight_number = departure_flight_number;
-
-      if (Object.keys(departureUpdates).length > 0) {
-        const { error: departureError } = await supabase
-          .from('tickets_from_treatment')
-          .update(departureUpdates)
-          .eq('deal_id', dealId);
-        
-        if (departureError) {
-          console.error('Error updating tickets_from_treatment:', departureError);
-          throw departureError;
-        }
-        hasUpdates = true;
-      }
-
-      // Обновляем остальные поля в deals (если есть)
-      if (Object.keys(otherFields).length > 0) {
+      // Обновляем таблицу deals если есть изменения
+      if (Object.keys(dealsUpdates).length > 0) {
         const { error: dealsError } = await supabase
           .from('deals')
-          .update(otherFields)
+          .update(dealsUpdates)
           .eq('id', dealId);
-        
+
         if (dealsError) {
-          console.error('Error updating deals:', dealsError);
-          throw dealsError;
+          console.error('Deals update error:', dealsError);
+          throw new Error(`Ошибка обновления deals: ${dealsError.message}`);
         }
-        hasUpdates = true;
       }
 
-      if (!hasUpdates) {
-        console.warn('No fields to update');
-        return;
+      // Обновляем таблицу tickets_to_china если есть изменения
+      if (Object.keys(ticketsUpdates).length > 0) {
+        // Если обновляется apartment_number, используем RPC функцию
+        if (ticketsUpdates.apartment_number) {
+          try {
+            const { error: rpcError } = await (supabase as any).rpc('update_apartment_number', {
+              p_deal_id: dealId,
+              p_apartment_number: ticketsUpdates.apartment_number
+            });
+            
+            if (rpcError) {
+              console.error('RPC update error:', rpcError);
+              throw new Error(`Ошибка обновления apartment_number: ${rpcError.message}`);
+            }
+          } catch (err) {
+            console.error('RPC call error:', err);
+            throw err;
+          }
+        } else {
+          // Для других полей используем прямой UPDATE
+          const { error: ticketsError } = await supabase
+            .from('tickets_to_china')
+            .update(ticketsUpdates)
+            .eq('deal_id', dealId);
+
+          if (ticketsError) {
+            console.error('Tickets update error:', ticketsError);
+            throw new Error(`Ошибка обновления tickets: ${ticketsError.message}`);
+          }
+        }
       }
 
-      // Refresh the data
+      // Перезагружаем данные
       await loadPatients({ search: '' });
-    } catch (err) {
-      console.error('Error in updatePatient:', err);
-      setError(err instanceof Error ? err.message : 'Ошибка обновления данных');
-      throw err; // Re-throw to let component handle it
-    } finally {
-      setLoading(false);
+      
+      console.log('Update successful');
+    } catch (error) {
+      console.error('Error updating patient:', error);
+      throw error;
     }
   };
 
