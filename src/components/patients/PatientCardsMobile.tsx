@@ -5,11 +5,17 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, User, Plane, Calendar, FileText, Edit2, Check, X } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ChevronDown, User, Plane, Calendar as CalendarIcon, FileText, Edit2, Check, X, Plus } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useCities } from '@/hooks/useCities';
 
 interface PatientCardsMobileProps {
   patients: PatientData[];
@@ -24,10 +30,22 @@ export function PatientCardsMobile({
   onPatientUpdate, 
   userRole 
 }: PatientCardsMobileProps) {
-  const { toast } = useToast();
+  
   const [openCards, setOpenCards] = useState<Set<number>>(new Set());
   const [editingField, setEditingField] = useState<{ dealId: number; field: string } | null>(null);
   const [editValue, setEditValue] = useState<string>('');
+  const { toast } = useToast();
+  const { cities } = useCities();
+  
+  // Return tickets modal state
+  const [showReturnTicketsModal, setShowReturnTicketsModal] = useState(false);
+  const [selectedDealId, setSelectedDealId] = useState<number | null>(null);
+  const [returnTicketsData, setReturnTicketsData] = useState({
+    departure_transport_type: '',
+    departure_city: '',
+    departure_datetime: null as Date | null,
+    departure_flight_number: ''
+  });
 
   const startEditing = (dealId: number, field: string, currentValue: string) => {
     setEditingField({ dealId, field });
@@ -66,6 +84,37 @@ export function PatientCardsMobile({
   const cancelEdit = () => {
     setEditingField(null);
     setEditValue('');
+  };
+
+  const handleAddReturnTickets = (dealId: number) => {
+    setSelectedDealId(dealId);
+    setShowReturnTicketsModal(true);
+  };
+
+  const handleSaveReturnTickets = () => {
+    console.log('Saving return tickets data:', {
+      dealId: selectedDealId,
+      ...returnTicketsData
+    });
+    setShowReturnTicketsModal(false);
+    setReturnTicketsData({
+      departure_transport_type: '',
+      departure_city: '',
+      departure_datetime: null,
+      departure_flight_number: ''
+    });
+    setSelectedDealId(null);
+  };
+
+  const handleCancelReturnTickets = () => {
+    setShowReturnTicketsModal(false);
+    setReturnTicketsData({
+      departure_transport_type: '',
+      departure_city: '',
+      departure_datetime: null,
+      departure_flight_number: ''
+    });
+    setSelectedDealId(null);
   };
 
   const isEditing = (dealId: number, field: string) => {
@@ -245,9 +294,22 @@ export function PatientCardsMobile({
              {/* Treatment Section */}
              {visibleFieldGroups.includes('treatment') && (
                <div className="p-2 rounded bg-blue-50 dark:bg-blue-950/20 space-y-2">
-                 <div className="flex items-center space-x-2">
-                   <User className="h-4 w-4 text-blue-600" />
-                   <span className="font-medium text-sm">Лечение</span>
+                 <div className="flex items-center justify-between">
+                   <div className="flex items-center space-x-2">
+                     <User className="h-4 w-4 text-blue-600" />
+                     <span className="font-medium text-sm">Лечение</span>
+                   </div>
+                   {patient.status_name === 'на лечении' && (
+                     <Button 
+                       size="sm" 
+                       variant="outline"
+                       onClick={() => handleAddReturnTickets(patient.deal_id)}
+                       className="text-xs"
+                     >
+                       <Plus className="h-3 w-3 mr-1" />
+                       Добавить билеты
+                     </Button>
+                   )}
                  </div>
                  <div className="grid grid-cols-1 gap-2 text-sm">
                    <div>
@@ -325,6 +387,107 @@ export function PatientCardsMobile({
           </CardContent>
         </Card>
       ))}
+
+      {/* Return Tickets Modal */}
+      <Dialog open={showReturnTicketsModal} onOpenChange={setShowReturnTicketsModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Добавить обратные билеты</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {/* Transport Type */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="departure_transport_type" className="text-right">
+                Транспорт
+              </Label>
+              <Select
+                value={returnTicketsData.departure_transport_type}
+                onValueChange={(value) => setReturnTicketsData(prev => ({ ...prev, departure_transport_type: value }))}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Выберите транспорт" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Самолет">Самолет</SelectItem>
+                  <SelectItem value="Поезд">Поезд</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* City */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="departure_city" className="text-right">
+                Город
+              </Label>
+              <Select
+                value={returnTicketsData.departure_city}
+                onValueChange={(value) => setReturnTicketsData(prev => ({ ...prev, departure_city: value }))}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Выберите город" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cities.map((city) => (
+                    <SelectItem key={city.id} value={city.city_name}>
+                      {city.city_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Date */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Дата</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="col-span-3 justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {returnTicketsData.departure_datetime ? (
+                      format(returnTicketsData.departure_datetime, 'PPP', { locale: ru })
+                    ) : (
+                      <span className="text-muted-foreground">Выберите дату</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={returnTicketsData.departure_datetime}
+                    onSelect={(date) => setReturnTicketsData(prev => ({ ...prev, departure_datetime: date }))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Flight Number */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="departure_flight_number" className="text-right">
+                Рейс
+              </Label>
+              <Input
+                id="departure_flight_number"
+                value={returnTicketsData.departure_flight_number}
+                onChange={(e) => setReturnTicketsData(prev => ({ ...prev, departure_flight_number: e.target.value }))}
+                className="col-span-3"
+                placeholder="Номер рейса"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelReturnTickets}>
+              Отмена
+            </Button>
+            <Button onClick={handleSaveReturnTickets}>
+              Сохранить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
