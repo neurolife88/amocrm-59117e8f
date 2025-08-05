@@ -31,16 +31,8 @@ export function FilterPanel({ onFilterChange, currentFilters }: FilterPanelProps
     onFilterChange({ ...currentFilters, clinic: clinic === 'all' ? undefined : clinic });
   };
 
-  const handleAirportCodeChange = (value: string) => {
-    onFilterChange({ ...currentFilters, departure_airport_code: value || undefined });
-  };
-
-  const handleArrivalCityChange = (value: string) => {
-    onFilterChange({ ...currentFilters, arrival_city: value || undefined });
-  };
-
   return (
-    <div className="bg-card border border-border rounded-lg p-4 space-y-4">
+    <div className="bg-blue-500 border border-border rounded-lg p-4 space-y-4">
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -81,35 +73,6 @@ export function FilterPanel({ onFilterChange, currentFilters }: FilterPanelProps
           </Select>
         </div>
       )}
-
-      {/* Airport Code Filter */}
-      <div className="space-y-2">
-        <div className="flex items-center space-x-2">
-          <Plane className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Код аэропорта:</span>
-        </div>
-        <Input
-          placeholder="Введите код аэропорта..."
-          value={currentFilters.departure_airport_code || ''}
-          onChange={(e) => handleAirportCodeChange(e.target.value)}
-          className="bg-background"
-        />
-      </div>
-
-      {/* Arrival City Filter */}
-      <div className="space-y-2">
-        <div className="flex items-center space-x-2">
-          <MapPin className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Город прибытия:</span>
-        </div>
-        <Input
-          placeholder="Введите город прибытия..."
-          value={currentFilters.arrival_city || ''}
-          onChange={(e) => handleArrivalCityChange(e.target.value)}
-          className="bg-background"
-        />
-      </div>
-
     </div>
   );
 }

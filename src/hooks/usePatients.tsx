@@ -139,19 +139,24 @@ export function usePatients() {
         'deal_name', 'pipeline_name', 'status_name', 'deal_country', 'visa_city'
       ];
       const ticketsFields = [
-        'apartment_number', 'departure_city', 'departure_datetime', 'departure_flight_number',
-        'arrival_datetime', 'arrival_city', 'arrival_flight_number', 'arrival_transport_type',
-        'departure_transport_type', 'passengers_count'
+        'apartment_number', 'arrival_datetime', 'arrival_city', 'arrival_flight_number', 
+        'arrival_transport_type', 'passengers_count'
+      ];
+      const returnTicketsFields = [
+        'departure_city', 'departure_datetime', 'departure_flight_number'
       ];
 
       const dealsUpdates: any = {};
       const ticketsUpdates: any = {};
+      const returnTicketsUpdates: any = {};
 
       Object.keys(updates).forEach(key => {
         if (dealsFields.includes(key)) {
           dealsUpdates[key] = (updates as any)[key];
         } else if (ticketsFields.includes(key)) {
           ticketsUpdates[key] = (updates as any)[key];
+        } else if (returnTicketsFields.includes(key)) {
+          returnTicketsUpdates[key] = (updates as any)[key];
         }
       });
 
@@ -197,6 +202,26 @@ export function usePatients() {
             console.error('Tickets update error:', ticketsError);
             throw new Error(`Ошибка обновления tickets: ${ticketsError.message}`);
           }
+        }
+      }
+
+      // Обновляем таблицу tickets_from_treatment если есть изменения
+      if (Object.keys(returnTicketsUpdates).length > 0 || updates.departure_transport_type) {
+        const finalReturnTicketsUpdates = { ...returnTicketsUpdates };
+        
+        // Map departure_transport_type to return_transport_type for database
+        if (updates.departure_transport_type) {
+          finalReturnTicketsUpdates.return_transport_type = updates.departure_transport_type;
+        }
+        
+        const { error: returnTicketsError } = await supabase
+          .from('tickets_from_treatment')
+          .update(finalReturnTicketsUpdates)
+          .eq('deal_id', dealId);
+
+        if (returnTicketsError) {
+          console.error('Return tickets update error:', returnTicketsError);
+          throw new Error(`Ошибка обновления обратных билетов: ${returnTicketsError.message}`);
         }
       }
 
