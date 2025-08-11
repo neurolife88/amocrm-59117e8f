@@ -222,30 +222,73 @@ export function PatientTableDesktop({
     setSelectedDealId(dealId);
     
     // Загружаем существующие данные, если они есть
-          setReturnTicketsData({
-        departure_transport_type: patient?.departure_transport_type || '',
-        departure_city: patient?.departure_city || '',
-        departure_datetime: patient?.departure_datetime ? new Date(patient.departure_datetime) : null,
-        departure_time: patient?.departure_time || '12:00',
-        departure_flight_number: patient?.departure_flight_number || ''
-      });
+    let departureTime = '12:00';
+    let departureDate = null;
+    
+    if (patient?.departure_datetime) {
+      const date = new Date(patient.departure_datetime);
+      departureDate = date;
+      departureTime = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    }
+    
+    setReturnTicketsData({
+      departure_transport_type: patient?.departure_transport_type || '',
+      departure_city: patient?.departure_city || '',
+      departure_datetime: departureDate,
+      departure_time: departureTime,
+      departure_flight_number: patient?.departure_flight_number || ''
+    });
     setShowReturnTicketsModal(true);
   };
 
-  const handleSaveReturnTickets = () => {
-    console.log('Saving return tickets data:', returnTicketsData);
-    setShowReturnTicketsModal(false);
-    setReturnTicketsData({
-      departure_transport_type: '',
-      departure_city: '',
-      departure_datetime: null,
-      departure_time: '12:00',
-      departure_flight_number: ''
-    });
+  const handleSaveReturnTickets = async () => {
+    if (!selectedDealId) return;
+    
+    try {
+      // Формируем дату и время для сохранения
+      let departureDateTime = null;
+      if (returnTicketsData.departure_datetime && returnTicketsData.departure_time) {
+        const date = new Date(returnTicketsData.departure_datetime);
+        const [hours, minutes] = returnTicketsData.departure_time.split(':');
+        date.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        departureDateTime = date.toISOString();
+      }
+
+      await onPatientUpdate(selectedDealId, {
+        departure_transport_type: returnTicketsData.departure_transport_type,
+        departure_city: returnTicketsData.departure_city,
+        departure_datetime: departureDateTime,
+        departure_flight_number: returnTicketsData.departure_flight_number
+      });
+      
+      setShowReturnTicketsModal(false);
+      setSelectedDealId(null);
+      setReturnTicketsData({
+        departure_transport_type: '',
+        departure_city: '',
+        departure_datetime: null,
+        departure_time: '12:00',
+        departure_flight_number: ''
+      });
+      
+      toast({
+        title: "Успешно сохранено",
+        description: "Данные обратных билетов обновлены",
+      });
+    } catch (error) {
+      console.error('Error saving return tickets:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      toast({
+        title: "Ошибка сохранения",
+        description: `Не удалось сохранить данные: ${errorMessage}`,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCancelReturnTickets = () => {
     setShowReturnTicketsModal(false);
+    setSelectedDealId(null);
     setReturnTicketsData({
       departure_transport_type: '',
       departure_city: '',
@@ -474,7 +517,7 @@ export function PatientTableDesktop({
       <Dialog open={showReturnTicketsModal} onOpenChange={setShowReturnTicketsModal}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Добавить обратные билеты</DialogTitle>
+            <DialogTitle>Редактировать обратные билеты</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             {/* Transport Type */}

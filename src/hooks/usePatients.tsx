@@ -207,21 +207,31 @@ export function usePatients() {
 
       // Обновляем таблицу tickets_from_treatment если есть изменения
       if (Object.keys(returnTicketsUpdates).length > 0 || updates.departure_transport_type) {
-        const finalReturnTicketsUpdates = { ...returnTicketsUpdates };
-        
-        // Map departure_transport_type to return_transport_type for database
-        if (updates.departure_transport_type) {
-          finalReturnTicketsUpdates.return_transport_type = updates.departure_transport_type;
-        }
-        
-        const { error: returnTicketsError } = await supabase
-          .from('tickets_from_treatment')
-          .update(finalReturnTicketsUpdates)
-          .eq('deal_id', dealId);
+        try {
+          // Используем RPC функцию с правами суперпользователя
+          const { data, error: returnTicketsError } = await supabase.rpc('update_departure_tickets', {
+            p_deal_id: dealId,
+            p_departure_transport_type: updates.departure_transport_type || returnTicketsUpdates.return_transport_type || null,
+            p_departure_city: returnTicketsUpdates.departure_city || null,
+            p_departure_datetime: returnTicketsUpdates.departure_datetime || null,
+            p_departure_flight_number: returnTicketsUpdates.departure_flight_number || null
+          });
 
-        if (returnTicketsError) {
-          console.error('Return tickets update error:', returnTicketsError);
-          throw new Error(`Ошибка обновления обратных билетов: ${returnTicketsError.message}`);
+          if (returnTicketsError) {
+            console.error('Return tickets RPC error:', returnTicketsError);
+            throw new Error(`Ошибка обновления обратных билетов: ${returnTicketsError.message}`);
+          }
+
+          // Проверяем результат функции
+          if (data && !data.success) {
+            console.error('Return tickets function error:', data.error);
+            throw new Error(`Ошибка обновления обратных билетов: ${data.error}`);
+          }
+
+          console.log('Return tickets updated successfully via RPC:', data);
+        } catch (rpcError) {
+          console.error('RPC call failed:', rpcError);
+          throw new Error(`Ошибка вызова функции обновления: ${rpcError instanceof Error ? rpcError.message : 'Неизвестная ошибка'}`);
         }
       }
 

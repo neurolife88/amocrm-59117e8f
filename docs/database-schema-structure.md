@@ -125,6 +125,35 @@ CREATE TABLE cities_directory (
 );
 ```
 
+### 8. Audit Log
+**Purpose**: System audit trail for critical operations and security monitoring
+```sql
+CREATE TABLE audit_log (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    action TEXT NOT NULL, -- Type of action performed (e.g., 'role_changed', 'user_created', 'user_deleted')
+    user_id UUID, -- ID of user who performed the action (references user_profiles.user_id)
+    target_user_id UUID, -- ID of user affected by the action (for user management operations)
+    old_role app_role, -- Previous role (for role change operations)
+    new_role app_role, -- New role (for role change operations)
+    timestamp TIMESTAMP WITHOUT TIME ZONE DEFAULT now(), -- When the action occurred
+    ip_address TEXT, -- IP address of the user for security tracking
+    user_agent TEXT -- Browser/device information for security tracking
+);
+```
+
+**Key Features:**
+- **Comprehensive Logging**: Records all critical system operations
+- **Role Change Tracking**: Captures old and new roles for user role modifications
+- **Security Metadata**: Stores IP address and user agent for security analysis
+- **Super Admin Access**: Only super_admin role can view audit logs
+- **Automatic Timestamping**: All actions are automatically timestamped
+
+**Typical Logged Actions:**
+- User role changes (coordinator ↔ director ↔ super_admin)
+- User account creation and deletion
+- Critical patient data modifications
+- Administrative system changes
+
 ## Master View for Web Interface
 
 This view combines all tables to provide complete patient information:
@@ -158,6 +187,7 @@ SELECT
     c.country as patient_country,
     c.city as patient_city,
     c.passport_number as patient_passport,
+    c.position as patient_position, -- Patient or companion role
     c.amocrm_contact_id,
     
     -- ARRIVAL DATA (tickets_to_china)
@@ -184,39 +214,58 @@ SELECT
     v.corridor_end_date as visa_corridor_end,
     
     -- COMPUTED FIELDS
-    (tc.arrival_datetime::date + INTERVAL '1 day' * v.visa_days) as visa_expiry_date,
-    ((tc.arrival_datetime::date + INTERVAL '1 day' * v.visa_days) - CURRENT_DATE) as days_until_visa_expires,
+    CASE
+        WHEN ((tc.arrival_datetime IS NULL) OR (tc.arrival_datetime > CURRENT_TIMESTAMP)) THEN NULL::integer
+        ELSE (EXTRACT(day FROM (((tc.arrival_datetime)::date + ((v.visa_days || ' days'::text))::interval) - (CURRENT_DATE)::timestamp without time zone)))::integer
+    END AS days_until_visa_expires,
     
     -- Patient status based on dates
-    CASE 
-        WHEN tc.arrival_datetime > NOW() THEN 'Arriving'
-        WHEN tc.arrival_datetime <= NOW() AND (tf.departure_datetime IS NULL OR tf.departure_datetime > NOW()) THEN 'In Treatment'
-        WHEN tf.departure_datetime <= NOW() THEN 'Departed'
-        ELSE 'Unknown'
-    END as patient_status,
+    CASE
+        WHEN (tc.arrival_datetime > now()) THEN 'Arriving'::text
+        WHEN ((tc.arrival_datetime <= now()) AND ((tf.departure_datetime IS NULL) OR (tf.departure_datetime > now()))) THEN 'In Treatment'::text
+        WHEN (tf.departure_datetime <= now()) THEN 'Departed'::text
+        ELSE 'Unknown'::text
+    END AS patient_status,
     
     -- Visa status based on expiry
-    CASE 
-        WHEN (tc.arrival_datetime::date + INTERVAL '1 day' * v.visa_days) < CURRENT_DATE THEN 'Expired'
-        WHEN (tc.arrival_datetime::date + INTERVAL '1 day' * v.visa_days) - CURRENT_DATE <= 3 THEN 'Expiring Soon'
-        ELSE 'Active'
-    END as visa_status
+    CASE
+        WHEN ((tc.arrival_datetime IS NULL) OR (tc.arrival_datetime > CURRENT_TIMESTAMP)) THEN NULL::text
+        WHEN (((tc.arrival_datetime)::date + ((v.visa_days || ' days'::text))::interval) < CURRENT_DATE) THEN 'Expired'::text
+        WHEN ((EXTRACT(day FROM (((tc.arrival_datetime)::date + ((v.visa_days || ' days'::text))::interval) - (CURRENT_DATE)::timestamp without time zone)))::integer <= 30) THEN 'Expiring Soon'::text
+        ELSE 'Active'::text
+    END AS visa_status,
+    
+    -- TIMESTAMP DATA
+    d.created_at AS deal_created_at,
+    d.updated_at AS deal_updated_at
 
 FROM deals d
 LEFT JOIN contacts c ON c.deal_id = d.id
 LEFT JOIN tickets_to_china tc ON tc.deal_id = d.id  
 LEFT JOIN tickets_from_treatment tf ON tf.deal_id = d.id
 LEFT JOIN visas v ON v.deal_id = d.id
-LEFT JOIN clinics_directory cl ON cl.short_name = d.clinic_name;
+LEFT JOIN clinics_directory cl ON cl.short_name = d.clinic_name
+WHERE (((d.pipeline_name)::text = 'Подготовка к поездке'::text) 
+  AND ((d.status_name)::text = ANY ((ARRAY['Билеты куплены'::character varying, 'на лечении'::character varying, 'квартира заказана'::character varying, 'обратные билеты с лечения'::character varying])::text[])) 
+  AND (c.position IS NOT NULL) 
+  AND (lower(c.position) LIKE '%пациент%'));
 ```
+
+**Key Features of the View:**
+- **Filtered Data**: Only shows patients (contacts with position containing 'пациент')
+- **Specific Pipeline**: Only 'Подготовка к поездке' pipeline
+- **Active Statuses**: Only specific deal statuses (tickets bought, in treatment, etc.)
+- **Computed Fields**: Real-time calculation of visa expiry and patient status
+- **NULL Safety**: Proper handling of missing dates and data
 
 ## Field Groups for UI Display
 
 ### 1. Basic Information (Always Visible)
 - `patient_full_name` - Patient full name
 - `clinic_name` - Clinic
-- `patient_status` - Patient status  
-- `deal_created_at` - Creation date
+- `patient_status` - Patient status (Arriving/In Treatment/Departed)
+- `deal_created_at` - Deal creation date
+- `deal_updated_at` - Deal last update date
 
 ### 2. Arrival Data (Show/Hide Button)
 - `arrival_datetime` - Arrival date and time
@@ -237,11 +286,10 @@ LEFT JOIN clinics_directory cl ON cl.short_name = d.clinic_name;
 ### 4. Visa Data (Show/Hide Button)
 - `visa_type` - Visa type
 - `visa_days` - Visa days
-- `visa_expiry_date` - Expiry date
-- `days_until_visa_expires` - Days until expiry
-- `visa_status` - Visa status
-- `visa_corridor_start` - Corridor start
-- `visa_corridor_end` - Corridor end
+- `days_until_visa_expires` - Days until expiry (computed field)
+- `visa_status` - Visa status (Active/Expiring Soon/Expired)
+- `visa_corridor_start` - Corridor start date
+- `visa_corridor_end` - Corridor end date
 
 ### 5. Personal Data (Show/Hide Button - Super Admin Only)
 - `patient_first_name` - First name
@@ -251,6 +299,7 @@ LEFT JOIN clinics_directory cl ON cl.short_name = d.clinic_name;
 - `patient_birthday` - Birthday
 - `patient_country` - Country
 - `patient_passport` - Passport
+- `patient_position` - Patient or companion role
 
 ## Editable Fields by Role
 
